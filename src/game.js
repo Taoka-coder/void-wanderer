@@ -722,6 +722,9 @@ class Game {
             spawnFloatingText(400, 270, "ROOM SECURED", '#22c55e', 14);
             audio.play('pickup');
 
+            // Immediately update minimap when room is secured
+            this.dungeon.drawMinimap(this.minimapCtx);
+
             // If Trophy room is cleared (just in case), spawn pedestal
             if (room.type === ROOM_TYPES.TROPHY && room.drops.length === 0) {
                 room.drops.push(new Drop(400, 260, 'trophy'));
