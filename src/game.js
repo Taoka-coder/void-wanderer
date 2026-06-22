@@ -144,6 +144,32 @@ class Game {
                     if (e.code === 'Digit2' || e.key === '2') this.selectWeapon('bow');
                     if (e.code === 'Digit3' || e.key === '3') this.selectWeapon('magic');
                     
+                    // Temporary Teleport Cheats
+                    if (e.key === 'o' || e.code === 'KeyO') {
+                        const bossRoom = this.dungeon.roomsList.find(r => r.type === ROOM_TYPES.BOSS);
+                        if (bossRoom) {
+                            this.dungeon.activeRoom = bossRoom;
+                            this.player.x = 400;
+                            this.player.y = 300;
+                            if (!bossRoom.mobsSpawned) {
+                                this.spawnRoomMobs();
+                            }
+                        }
+                    }
+                    if (e.key === 'p' || e.code === 'KeyP') {
+                        this.level = (this.level % 5) + 1;
+                        this.generateLevel();
+                        const bossRoom = this.dungeon.roomsList.find(r => r.type === ROOM_TYPES.BOSS);
+                        if (bossRoom) {
+                            this.dungeon.activeRoom = bossRoom;
+                            this.player.x = 400;
+                            this.player.y = 300;
+                            if (!bossRoom.mobsSpawned) {
+                                this.spawnRoomMobs();
+                            }
+                        }
+                    }
+                    
                     // Interact check using rebindable key
                     const interactKey = this.keyBinds.interact.toLowerCase();
                     const isInteractPressed = (e.key && e.key.toLowerCase() === interactKey) || 
