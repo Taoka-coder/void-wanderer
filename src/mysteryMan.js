@@ -1,12 +1,12 @@
 // Mystery Man interaction system for Void Wanderer
 
-import { spawnSmoke, spawnSparkles, spawnFloatingText } from './particles.js?v=19';
+import { spawnSmoke, spawnSparkles, spawnFloatingText } from './particles.js?v=20';
 
 export class MysteryManNPC {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.radius = 20;
+        this.radius = 45; // Make him look huge!
         this.interacted = false;
         this.pulseAngle = 0;
     }
@@ -28,38 +28,38 @@ export class MysteryManNPC {
         ctx.save();
         const floatOffset = Math.sin(this.pulseAngle) * 5;
 
-        // Draw dark portal-like glowing shadow underneath him
-        ctx.fillStyle = 'rgba(147, 51, 234, 0.15)'; // purple glow
-        ctx.shadowBlur = 15;
+        // Draw dark portal-like glowing shadow underneath him (scaled up)
+        ctx.fillStyle = 'rgba(147, 51, 234, 0.2)'; // purple glow
+        ctx.shadowBlur = 25;
         ctx.shadowColor = '#a855f7';
         ctx.beginPath();
-        ctx.arc(this.x, this.y + 14, 18, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y + 30, 38, 0, Math.PI * 2);
         ctx.fill();
 
-        // Cloaked Mystery figure body
+        // Cloaked Mystery figure body (scaled up)
         ctx.fillStyle = '#0f172a'; // Deep charcoal grey cloak
         ctx.beginPath();
-        ctx.arc(this.x, this.y - 2 + floatOffset, this.radius, 0, Math.PI*2);
+        ctx.arc(this.x, this.y - 4 + floatOffset, this.radius, 0, Math.PI*2);
         ctx.fill();
 
-        // Inner shadow hood
+        // Inner shadow hood (scaled up)
         ctx.fillStyle = '#020617';
         ctx.beginPath();
-        ctx.arc(this.x, this.y + floatOffset, this.radius - 4, Math.PI, Math.PI*2);
+        ctx.arc(this.x, this.y + floatOffset, this.radius - 8, Math.PI, Math.PI*2);
         ctx.fill();
 
-        // Glowing cyan/purple eyes inside hood
+        // Glowing cyan/purple eyes inside hood (scaled up)
         ctx.fillStyle = '#c084fc'; // Light purple glow eyes
         ctx.beginPath();
-        ctx.arc(this.x - 5, this.y - 2 + floatOffset, 2.5, 0, Math.PI*2);
-        ctx.arc(this.x + 5, this.y - 2 + floatOffset, 2.5, 0, Math.PI*2);
+        ctx.arc(this.x - 11, this.y - 4 + floatOffset, 5.5, 0, Math.PI*2);
+        ctx.arc(this.x + 11, this.y - 4 + floatOffset, 5.5, 0, Math.PI*2);
         ctx.fill();
 
-        // Interaction hint indicator above NPC
-        ctx.font = "bold 9px 'Cinzel', serif";
+        // Interaction hint indicator above NPC (shifted higher)
+        ctx.font = "bold 11px 'Cinzel', serif";
         ctx.fillStyle = '#cbd5e1';
         ctx.textAlign = 'center';
-        ctx.fillText("THE DECIPIENT", this.x, this.y - 28 + floatOffset);
+        ctx.fillText("THE DECIPIENT", this.x, this.y - 56 + floatOffset);
 
         ctx.restore();
     }
