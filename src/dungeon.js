@@ -312,14 +312,14 @@ export class Dungeon {
     }
 
     drawMinimap(ctx) {
-        ctx.clearRect(0, 0, 120, 120);
+        ctx.clearRect(0, 0, 148, 148);
         
-        // 9x9 grid, drawing offset
-        const roomSize = 10;
+        // 9x9 grid, drawing offset - enlarged for maximum visibility in a 148x148 canvas
+        const roomSize = 13;
         const gap = 2;
-        const totalGridSize = GRID_SIZE * (roomSize + gap) - gap; // 9 * 12 - 2 = 106
-        const offsetX = 60 - totalGridSize / 2; // Centered inside 120x120 (starts at 7)
-        const offsetY = 60 - totalGridSize / 2;
+        const totalGridSize = GRID_SIZE * (roomSize + gap) - gap; // 9 * 15 - 2 = 133
+        const offsetX = 74 - totalGridSize / 2; // Centered inside 148x148
+        const offsetY = 74 - totalGridSize / 2;
 
         for (let y = 0; y < GRID_SIZE; y++) {
             for (let x = 0; x < GRID_SIZE; x++) {
@@ -361,44 +361,57 @@ export class Dungeon {
 
                 if (room.visited) {
                     // Visited: Draw details
-                    if (room.type === ROOM_TYPES.MYSTERY) {
-                        ctx.fillStyle = '#a855f7'; // Mystery Man Room: Purple
+                    if (room.type === ROOM_TYPES.START) {
+                        ctx.fillStyle = '#0ea5e9'; // Start Room: Neon Sky Blue
+                    } else if (room.type === ROOM_TYPES.MYSTERY) {
+                        ctx.fillStyle = '#a855f7'; // Mystery Man Room: Royal Purple
                     } else if (room.type === ROOM_TYPES.SHOP) {
-                        ctx.fillStyle = '#8c542b'; // Shop Room: Brown
+                        ctx.fillStyle = '#f59e0b'; // Shop Room: Gold Amber
                     } else if (room.cleared) {
-                        ctx.fillStyle = '#ffffff'; // Cleared/secured room: White
+                        ctx.fillStyle = '#f1f5f9'; // Cleared/secured room: Sleek White/Silver
                     } else {
-                        ctx.fillStyle = '#000000'; // Visited but uncleared/unsecured: Black
+                        ctx.fillStyle = '#dc2626'; // Visited but uncleared/active combat: Bold Red
                     }
                     ctx.fillRect(rx, ry, roomSize, roomSize);
 
-                    // Border around visited rooms to make them clearly visible on dark backgrounds
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.lineWidth = 1;
+                    // High contrast border around visited rooms
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.5;
                     ctx.strokeRect(rx + 0.5, ry + 0.5, roomSize - 1, roomSize - 1);
 
-                    // Draw player indicator in active room
+                    // Draw player indicator in active room with pulsing ring effect
                     if (this.activeRoom === room) {
-                        ctx.fillStyle = '#06b6d4'; // Glowing cyan dot for player
+                        const pulse = 1.0 + Math.sin(Date.now() * 0.01) * 0.25;
+                        ctx.fillStyle = '#06b6d4'; // Bright Cyan Player Dot
                         ctx.beginPath();
-                        ctx.arc(rx + roomSize / 2, ry + roomSize / 2, 2.5, 0, Math.PI * 2);
+                        ctx.arc(rx + roomSize / 2, ry + roomSize / 2, 3.5, 0, Math.PI * 2);
                         ctx.fill();
+                        
+                        // Pulsing ring
+                        ctx.strokeStyle = `rgba(6, 182, 212, ${Math.max(0, 1.0 - (pulse - 0.7))})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.arc(rx + roomSize / 2, ry + roomSize / 2, 3.5 * pulse, 0, Math.PI * 2);
+                        ctx.stroke();
                     }
                 } else if ((isBoss && showBoss) || (isAdjacentToVisited && !isBoss)) {
                     const isShop = room.type === ROOM_TYPES.SHOP;
-                    // Revealed adjacent room (or adjacent boss room): Draw placeholder border
-                    ctx.strokeStyle = isBoss ? '#ef4444' : (isShop ? '#8c542b' : 'rgba(255, 255, 255, 0.4)');
-                    ctx.lineWidth = 1;
+                    const isMystery = room.type === ROOM_TYPES.MYSTERY;
+                    
+                    // Revealed adjacent room (or adjacent boss room): Draw placeholder thick border
+                    ctx.strokeStyle = isBoss ? '#ef4444' : (isShop ? '#f59e0b' : (isMystery ? '#a855f7' : 'rgba(255, 255, 255, 0.55)'));
+                    ctx.lineWidth = 1.5;
                     ctx.strokeRect(rx + 0.5, ry + 0.5, roomSize - 1, roomSize - 1);
                     
                     if (isBoss) {
-                        // Small red dot in center for boss icon
                         ctx.fillStyle = '#ef4444';
-                        ctx.fillRect(rx + roomSize / 2 - 1, ry + roomSize / 2 - 1, 2, 2);
+                        ctx.fillRect(rx + roomSize / 2 - 1.5, ry + roomSize / 2 - 1.5, 3, 3);
                     } else if (isShop) {
-                        // Small brown dot in center for shop icon
-                        ctx.fillStyle = '#8c542b';
-                        ctx.fillRect(rx + roomSize / 2 - 1, ry + roomSize / 2 - 1, 2, 2);
+                        ctx.fillStyle = '#f59e0b';
+                        ctx.fillRect(rx + roomSize / 2 - 1.5, ry + roomSize / 2 - 1.5, 3, 3);
+                    } else if (isMystery) {
+                        ctx.fillStyle = '#a855f7';
+                        ctx.fillRect(rx + roomSize / 2 - 1.5, ry + roomSize / 2 - 1.5, 3, 3);
                     }
                 }
             }
