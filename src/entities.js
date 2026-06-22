@@ -81,6 +81,11 @@ export class Player {
         spawnFloatingText(this.x, this.y - 15, `-${amount} HP`, '#ef4444', 16);
         
         audio.play('player_hit');
+        
+        // Immediately update health bar
+        if (window.game && typeof window.game.updateHUDHealth === 'function') {
+            window.game.updateHUDHealth();
+        }
         return true;
     }
 
@@ -91,6 +96,11 @@ export class Player {
             spawnSparkles(this.x, this.y, '#10b981', 10);
             spawnFloatingText(this.x, this.y - 15, `+${amount} Health`, '#10b981', 14);
             audio.play('heal');
+            
+            // Immediately update health bar
+            if (window.game && typeof window.game.updateHUDHealth === 'function') {
+                window.game.updateHUDHealth();
+            }
             return true;
         }
         return false;
@@ -101,7 +111,13 @@ export class Player {
         this.health += amount; // heal for the increase
         spawnSparkles(this.x, this.y, '#10b981', 15);
         spawnFloatingText(this.x, this.y - 15, `+${amount} Max Hearts`, '#10b981', 15);
+        
+        // Immediately update health bar
+        if (window.game && typeof window.game.updateHUDHealth === 'function') {
+            window.game.updateHUDHealth();
+        }
     }
+
 
     restoreMana(amount) {
         const prev = this.mana;
@@ -906,10 +922,11 @@ export class Projectile {
                 const dy = p.y - this.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 if (dist < radius + p.radius) {
-                    p.takeDamage(1);
+                    p.takeDamage(this.damage);
                 }
             }
         }
+
     }
 
     draw(ctx) {
@@ -986,14 +1003,14 @@ export class Enemy {
             this.radius = 16;
             this.maxHealth = 8 * levelMultiplier;
             this.speed = 1.6 + Math.random() * 0.4;
-            this.damage = 1;
+            this.damage = 0.5;
             this.color = '#ef4444';
             this.icon = '💀'; // Skeleton representation
         } else if (type === 'shooter') {
             this.radius = 15;
             this.maxHealth = 6 * levelMultiplier;
             this.speed = 1.0;
-            this.damage = 1;
+            this.damage = 0.5;
             this.shootCooldown = 60 + Math.random() * 60;
             this.color = '#a855f7';
             this.icon = '🦇'; // Gargoyle representation
@@ -1001,17 +1018,18 @@ export class Enemy {
             this.radius = 12;
             this.maxHealth = 4 * levelMultiplier;
             this.speed = 2.4;
-            this.damage = 1;
+            this.damage = 0.5;
             this.color = '#22c55e';
             this.icon = '🦠'; // Slime representation
         } else if (type === 'mini_swarmer') {
             this.radius = 7;
             this.maxHealth = 2 * levelMultiplier;
             this.speed = 2.8;
-            this.damage = 1;
+            this.damage = 0.5;
             this.color = '#4ade80';
             this.icon = '🟢';
         }
+
 
         this.health = this.maxHealth;
         this.vx = 0;
@@ -1109,12 +1127,13 @@ export class Enemy {
                     y: this.y,
                     vx: (dx / dist) * speed,
                     vy: (dy / dist) * speed,
-                    damage: 1,
+                    damage: this.damage,
                     range: 400,
                     type: 'bullet',
                     owner: 'enemy'
                 }));
             }
+
 
             // Touch damage
             if (dist < this.radius + player.radius) {
@@ -1480,8 +1499,9 @@ export class Boss {
                     const pdy = player.y - this.y;
                     const pdist = Math.sqrt(pdx*pdx + pdy*pdy);
                     if (pdist < 60) {
-                        player.takeDamage(this.damage * 1.5);
+                        player.takeDamage(this.damage);
                     }
+
                     
                     // Radial bullet shockwave
                     for (let i = 0; i < 12; i++) {
