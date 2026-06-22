@@ -11,7 +11,8 @@ export const ROOM_TYPES = {
     BASIC: 'basic',
     TROPHY: 'trophy',
     BOSS: 'boss',
-    MYSTERY: 'mystery'
+    MYSTERY: 'mystery',
+    SHOP: 'shop'
 };
 
 export class Room {
@@ -19,7 +20,7 @@ export class Room {
         this.gridX = gridX;
         this.gridY = gridY;
         this.type = type;
-        this.cleared = (type === ROOM_TYPES.START || type === ROOM_TYPES.TROPHY || type === ROOM_TYPES.MYSTERY);
+        this.cleared = (type === ROOM_TYPES.START || type === ROOM_TYPES.TROPHY || type === ROOM_TYPES.MYSTERY || type === ROOM_TYPES.SHOP);
         this.visited = false;
         
         // Connections to adjacent rooms (true/false)
@@ -263,7 +264,32 @@ export class Dungeon {
             }
         }
 
-        // 4. Remaining rooms are either basic (combat) or empty (obstacles only)
+        // 4. Select Shop Room from remaining basic rooms
+        let shopRoomObj = null;
+        for (const room of this.roomsList) {
+            if (room.gridX === START_X && room.gridY === START_Y) continue;
+            if (room !== bossRoomObj && room !== trophyRoomObj && room !== mysteryRoomObj && room.type === ROOM_TYPES.BASIC) {
+                shopRoomObj = room;
+                shopRoomObj.type = ROOM_TYPES.SHOP;
+                shopRoomObj.cleared = true;
+                break;
+            }
+        }
+        
+        // Fallback just in case no basic room fits
+        if (!shopRoomObj) {
+            for (const room of this.roomsList) {
+                if (room.gridX === START_X && room.gridY === START_Y) continue;
+                if (room !== bossRoomObj && room !== trophyRoomObj && room !== mysteryRoomObj) {
+                    shopRoomObj = room;
+                    shopRoomObj.type = ROOM_TYPES.SHOP;
+                    shopRoomObj.cleared = true;
+                    break;
+                }
+            }
+        }
+
+        // 5. Remaining rooms are either basic (combat) or empty (obstacles only)
         for (const room of this.roomsList) {
             if (room.type === ROOM_TYPES.BASIC) {
                 // 30% chance to be an empty room with obstacles
@@ -337,6 +363,8 @@ export class Dungeon {
                     // Visited: Draw details
                     if (room.type === ROOM_TYPES.MYSTERY) {
                         ctx.fillStyle = '#a855f7'; // Mystery Man Room: Purple
+                    } else if (room.type === ROOM_TYPES.SHOP) {
+                        ctx.fillStyle = '#8c542b'; // Shop Room: Brown
                     } else if (room.cleared) {
                         ctx.fillStyle = '#ffffff'; // Cleared/secured room: White
                     } else {
@@ -357,14 +385,19 @@ export class Dungeon {
                         ctx.fill();
                     }
                 } else if ((isBoss && showBoss) || (isAdjacentToVisited && !isBoss)) {
+                    const isShop = room.type === ROOM_TYPES.SHOP;
                     // Revealed adjacent room (or adjacent boss room): Draw placeholder border
-                    ctx.strokeStyle = isBoss ? '#ef4444' : 'rgba(255, 255, 255, 0.4)';
+                    ctx.strokeStyle = isBoss ? '#ef4444' : (isShop ? '#8c542b' : 'rgba(255, 255, 255, 0.4)');
                     ctx.lineWidth = 1;
                     ctx.strokeRect(rx + 0.5, ry + 0.5, roomSize - 1, roomSize - 1);
                     
                     if (isBoss) {
                         // Small red dot in center for boss icon
                         ctx.fillStyle = '#ef4444';
+                        ctx.fillRect(rx + roomSize / 2 - 1, ry + roomSize / 2 - 1, 2, 2);
+                    } else if (isShop) {
+                        // Small brown dot in center for shop icon
+                        ctx.fillStyle = '#8c542b';
                         ctx.fillRect(rx + roomSize / 2 - 1, ry + roomSize / 2 - 1, 2, 2);
                     }
                 }
