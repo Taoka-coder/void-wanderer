@@ -9,8 +9,10 @@ import { audio } from './audio.js';
 
 class Game {
     constructor() {
+        window.game = this;
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
+
         
         this.minimapCanvas = document.getElementById('minimap-canvas');
         this.minimapCtx = this.minimapCanvas.getContext('2d');
@@ -545,15 +547,43 @@ class Game {
         for (let i = 0; i < this.player.maxHealth; i++) {
             const heart = document.createElement('span');
             heart.className = 'heart-icon';
-            if (i < this.player.health) {
+            
+            if (i < Math.floor(this.player.health)) {
+                // Full heart
                 heart.innerHTML = '❤️';
+            } else if (i < this.player.health) {
+                // Half heart
+                heart.className += ' half';
+                heart.style.position = 'relative';
+                heart.style.display = 'inline-block';
+                
+                const bgHeart = document.createElement('span');
+                bgHeart.className = 'heart-bg empty';
+                bgHeart.innerHTML = '🖤';
+                bgHeart.style.opacity = '0.25';
+                bgHeart.style.filter = 'grayscale(1)';
+                
+                const fgHeart = document.createElement('span');
+                fgHeart.className = 'heart-fg';
+                fgHeart.innerHTML = '❤️';
+                fgHeart.style.position = 'absolute';
+                fgHeart.style.top = '0';
+                fgHeart.style.left = '0';
+                fgHeart.style.width = '100%';
+                fgHeart.style.height = '100%';
+                fgHeart.style.clipPath = 'polygon(0 0, 50% 0, 50% 100%, 0 100%)';
+                
+                heart.appendChild(bgHeart);
+                heart.appendChild(fgHeart);
             } else {
+                // Empty heart
                 heart.className += ' empty';
                 heart.innerHTML = '🖤';
             }
             containers.appendChild(heart);
         }
     }
+
 
     updateHUDStats() {
         document.getElementById('stat-damage').textContent = this.player.damage.toFixed(1);
