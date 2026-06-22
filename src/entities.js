@@ -1,9 +1,9 @@
 // Entities for Void Wanderer
 // Handles Player, Weapons, Projectiles, Enemies, Bosses, Drops, and Collisions
 
-import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke } from './particles.js?v=18';
-import { ROOM_TYPES } from './dungeon.js?v=18';
-import { audio } from './audio.js?v=18';
+import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke } from './particles.js?v=19';
+import { ROOM_TYPES } from './dungeon.js?v=19';
+import { audio } from './audio.js?v=19';
 
 
 
@@ -72,7 +72,9 @@ export class Player {
         
         // Sword Slash Visual Track
         this.swordSlash = null; // { angle, progress, max }
+        this.coins = 0;
     }
+
 
     takeDamage(amount) {
         if (this.invulnFrames > 0) return false;
@@ -2179,6 +2181,11 @@ export class Drop {
     }
 
     update(player) {
+        // If it's a heart and player is at max health, do not pull or pick up
+        if (this.type === 'heart' && player.health >= player.maxHealth) {
+            return false;
+        }
+
         // Drop magnet pull towards player if within 120px
         const dx = player.x - this.x;
         const dy = player.y - this.y;
@@ -2193,11 +2200,17 @@ export class Drop {
         // Collision Check with Player
         if (dist < this.radius + player.radius) {
             if (this.type === 'coin') {
+                player.coins = (player.coins || 0) + 1; // Increment player coin count!
                 player.restoreMana(5); // coins double as a tiny mana boost
                 spawnSparkles(this.x, this.y, '#f59e0b', 5);
                 spawnFloatingText(this.x, this.y, '+1 Coin', '#f59e0b', 12);
                 this.pickedUp = true;
                 audio.play('coin_pickup');
+                
+                // Immediately update HUD stats panel to reflect coin changes
+                if (window.game && typeof window.game.updateHUDStats === 'function') {
+                    window.game.updateHUDStats();
+                }
                 return true;
             } else if (this.type === 'mana') {
                 player.restoreMana(35);
@@ -2205,7 +2218,7 @@ export class Drop {
                 audio.play('pickup');
                 return true;
             } else if (this.type === 'heart') {
-                // Only pickup heart if damaged
+                // Only pickup heart if damaged (extra safety check)
                 if (player.health < player.maxHealth) {
                     player.heal(1);
                     this.pickedUp = true;
@@ -2247,10 +2260,30 @@ export class Drop {
         ctx.arc(this.x, this.y + this.radius - 2, this.radius * 0.8, 0, Math.PI*2);
         ctx.fill();
 
-        ctx.font = `${this.radius * 1.5}px Arial`;
+        ctx.font = `bold ${this.radius * 1.5}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
+        // Draw thick glowing colored outline to make them notice more easily
+        ctx.save();
+        ctx.lineWidth = 4;
+        if (this.type === 'coin') {
+            ctx.strokeStyle = '#fbbf24'; // Golden yellow outline
+            ctx.strokeText('🪙', this.x, this.y + bounce);
+        } else if (this.type === 'mana') {
+            ctx.strokeStyle = '#06b6d4'; // Cyan potion outline
+            ctx.strokeText('🧪', this.x, this.y + bounce);
+        } else if (this.type === 'heart') {
+            ctx.strokeStyle = '#ef4444'; // Red heart outline
+            ctx.strokeText('❤️', this.x, this.y + bounce);
+        } else if (this.type === 'trophy') {
+            ctx.strokeStyle = '#f59e0b'; // Gold trophy outline
+            ctx.lineWidth = 5;
+            ctx.strokeText(this.trophyData.icon, this.x, this.y - 14 + bounce);
+        }
+        ctx.restore();
+
+        // Draw main emojis on top of outline
         if (this.type === 'coin') {
             ctx.fillText('🪙', this.x, this.y + bounce);
         } else if (this.type === 'mana') {
@@ -2276,4 +2309,5 @@ export class Drop {
 
         ctx.restore();
     }
+
 }
