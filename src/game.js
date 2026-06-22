@@ -1,11 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=17';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=17';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=17';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=17';
-import { audio } from './audio.js?v=17';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=18';
+import { Player, Enemy, Boss, Drop } from './entities.js?v=18';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=18';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=18';
+import { audio } from './audio.js?v=18';
+
 
 
 
@@ -797,14 +798,15 @@ class Game {
             this.handleGameOver();
         }
 
-        // 9. Trapdoor Overlap detection (If Boss dead)
+        // 9. Portal Overlap detection (If Boss dead)
         if (room.type === ROOM_TYPES.BOSS && room.cleared) {
             const tdx = this.player.x - 400;
             const tdy = this.player.y - 300;
             const tdist = Math.sqrt(tdx*tdx + tdy*tdy);
 
             if (tdist < this.player.radius + 15) {
-                // Trapdoor transition!
+                // Portal transition!
+
                 if (this.level >= 5) {
                     this.handleVictory();
                 } else {
