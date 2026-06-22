@@ -286,13 +286,14 @@ export class Dungeon {
     }
 
     drawMinimap(ctx) {
-        ctx.clearRect(0, 0, 100, 100);
+        ctx.clearRect(0, 0, 120, 120);
         
         // 9x9 grid, drawing offset
-        const roomSize = 8;
+        const roomSize = 10;
         const gap = 2;
-        const offsetX = 50 - (GRID_SIZE * (roomSize + gap)) / 2;
-        const offsetY = 50 - (GRID_SIZE * (roomSize + gap)) / 2;
+        const totalGridSize = GRID_SIZE * (roomSize + gap) - gap; // 9 * 12 - 2 = 106
+        const offsetX = 60 - totalGridSize / 2; // Centered inside 120x120 (starts at 7)
+        const offsetY = 60 - totalGridSize / 2;
 
         for (let y = 0; y < GRID_SIZE; y++) {
             for (let x = 0; x < GRID_SIZE; x++) {
@@ -302,10 +303,7 @@ export class Dungeon {
                 const rx = offsetX + x * (roomSize + gap);
                 const ry = offsetY + y * (roomSize + gap);
 
-                // Reveal logic:
-                // - Show room if visited
-                // - OR show Boss Room initially (as per user request: "boss room which character will initially find on map layout")
-                // - OR show adjacent rooms to visited rooms
+                // Check if adjacent to a visited room
                 let isAdjacentToVisited = false;
                 const adjacentDirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
                 for (const [dx, dy] of adjacentDirs) {
@@ -322,26 +320,44 @@ export class Dungeon {
 
                 const isBoss = room.type === ROOM_TYPES.BOSS;
 
+                // Boss visibility logic: Hide boss room until player is 1 door away (or has visited it)
+                let showBoss = false;
+                if (isBoss) {
+                    if (room.visited) {
+                        showBoss = true;
+                    } else if (this.activeRoom) {
+                        const dist = Math.abs(this.activeRoom.gridX - x) + Math.abs(this.activeRoom.gridY - y);
+                        if (dist === 1) {
+                            showBoss = true;
+                        }
+                    }
+                }
+
                 if (room.visited) {
                     // Visited: Draw details
-                    if (this.activeRoom === room) {
-                        ctx.fillStyle = '#a855f7'; // Player position: glowing purple
-                    } else if (room.type === ROOM_TYPES.START) {
-                        ctx.fillStyle = '#3b82f6'; // Start: Blue
-                    } else if (room.type === ROOM_TYPES.BOSS) {
-                        ctx.fillStyle = '#ef4444'; // Boss: Red
-                    } else if (room.type === ROOM_TYPES.TROPHY) {
-                        ctx.fillStyle = '#f59e0b'; // Gold trophy
-                    } else if (room.type === ROOM_TYPES.MYSTERY) {
-                        ctx.fillStyle = '#e9d5ff'; // Pale purple mystery man
-                    } else if (room.type === ROOM_TYPES.EMPTY) {
-                        ctx.fillStyle = '#475569'; // Grey empty room
+                    if (room.type === ROOM_TYPES.MYSTERY) {
+                        ctx.fillStyle = '#a855f7'; // Mystery Man Room: Purple
+                    } else if (room.cleared) {
+                        ctx.fillStyle = '#ffffff'; // Cleared/secured room: White
                     } else {
-                        ctx.fillStyle = '#1e293b'; // Basic room
+                        ctx.fillStyle = '#000000'; // Visited but uncleared/unsecured: Black
                     }
                     ctx.fillRect(rx, ry, roomSize, roomSize);
-                } else if (isBoss || isAdjacentToVisited) {
-                    // Revealed: Draw placeholder border or special icon
+
+                    // Border around visited rooms to make them clearly visible on dark backgrounds
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(rx + 0.5, ry + 0.5, roomSize - 1, roomSize - 1);
+
+                    // Draw player indicator in active room
+                    if (this.activeRoom === room) {
+                        ctx.fillStyle = '#06b6d4'; // Glowing cyan dot for player
+                        ctx.beginPath();
+                        ctx.arc(rx + roomSize / 2, ry + roomSize / 2, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                } else if ((isBoss && showBoss) || (isAdjacentToVisited && !isBoss)) {
+                    // Revealed adjacent room (or adjacent boss room): Draw placeholder border
                     ctx.strokeStyle = isBoss ? '#ef4444' : 'rgba(255, 255, 255, 0.4)';
                     ctx.lineWidth = 1;
                     ctx.strokeRect(rx + 0.5, ry + 0.5, roomSize - 1, roomSize - 1);
@@ -349,10 +365,11 @@ export class Dungeon {
                     if (isBoss) {
                         // Small red dot in center for boss icon
                         ctx.fillStyle = '#ef4444';
-                        ctx.fillRect(rx + 3, ry + 3, 2, 2);
+                        ctx.fillRect(rx + roomSize / 2 - 1, ry + roomSize / 2 - 1, 2, 2);
                     }
                 }
             }
         }
     }
+
 }
