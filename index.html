@@ -58,6 +58,7 @@
                     <div class="stat-item"><span class="stat-icon">⚡</span> Attack Speed: <span id="stat-ats">1.0</span>/s</div>
                     <div class="stat-item"><span class="stat-icon">🏃</span> Speed: <span id="stat-speed">3.0</span></div>
                     <div class="stat-item"><span class="stat-icon">🎯</span> Range: <span id="stat-range">350</span></div>
+                    <div class="stat-item"><span class="stat-icon">🪙</span> Coins: <span id="stat-coins">0</span></div>
                 </div>
             </div>
 
@@ -183,6 +184,49 @@
             </div>
         </div>
 
+        <!-- Shop Overlay -->
+        <div id="shop-overlay" class="overlay hidden">
+            <div class="overlay-card glass-panel shop-card">
+                <div class="shop-keeper-avatar">🧙‍♂️</div>
+                <h2 class="shop-title">THE MERCHANT</h2>
+                <p class="shop-dialogue">"Welcome to my sanctuary, wanderer. Spend your coin wisely, or risk it all for a taste of fortune..."</p>
+                <div class="shop-player-coins">YOUR COINS: <span class="stat-icon">🪙</span> <span id="shop-coins-display">0</span></div>
+                
+                <div class="shop-options">
+                    <div class="shop-item-option" id="shop-item-stat">
+                        <span class="shop-item-icon">🔮</span>
+                        <div class="shop-item-details">
+                            <h4>RANDOM STAT UP</h4>
+                            <p>Upgrade Damage, Attack Speed, Speed, or Max HP.</p>
+                        </div>
+                        <button id="btn-shop-buy-stat" class="btn btn-accent">🪙 15 COINS</button>
+                    </div>
+
+                    <div class="shop-item-option" id="shop-item-heal">
+                        <span class="shop-item-icon">🩸</span>
+                        <div class="shop-item-details">
+                            <h4>HEALING ESSENCE</h4>
+                            <p>Restores 2 full hearts of health.</p>
+                        </div>
+                        <button id="btn-shop-buy-heal" class="btn btn-accent">🪙 5 COINS</button>
+                    </div>
+
+                    <div class="shop-item-option rob-option" id="shop-item-rob">
+                        <span class="shop-item-icon">🎭</span>
+                        <div class="shop-item-details">
+                            <h4>ROB THE MERCHANT</h4>
+                            <p>30% Success: FREE upgrade & FULL heal. Failure: Banished next level.</p>
+                        </div>
+                        <button id="btn-shop-rob" class="btn btn-danger glow-effect">ROB NPC</button>
+                    </div>
+                </div>
+
+                <div class="shop-actions">
+                    <button id="btn-shop-close" class="btn btn-secondary">LEAVE SHOP</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Game Over Screen -->
         <div id="game-over-screen" class="overlay hidden">
             <div class="overlay-card glass-panel death-card">
@@ -290,6 +334,6 @@
         </div>
     </div>
     <!-- Load game engine scripts -->
-    <script type="module" src="src/game.js?v=18"></script>
+    <script type="module" src="src/game.js?v=19"></script>
 </body>
 </html>
