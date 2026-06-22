@@ -1,9 +1,10 @@
 // Entities for Void Wanderer
 // Handles Player, Weapons, Projectiles, Enemies, Bosses, Drops, and Collisions
 
-import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke } from './particles.js?v=16';
-import { ROOM_TYPES } from './dungeon.js?v=16';
-import { audio } from './audio.js?v=16';
+import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke } from './particles.js?v=17';
+import { ROOM_TYPES } from './dungeon.js?v=17';
+import { audio } from './audio.js?v=17';
+
 
 
 
