@@ -1,11 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=15';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=15';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=15';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=15';
-import { audio } from './audio.js?v=15';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=16';
+import { Player, Enemy, Boss, Drop } from './entities.js?v=16';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=16';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=16';
+import { audio } from './audio.js?v=16';
+
 
 
 class Game {
@@ -911,6 +912,11 @@ class Game {
         const room = this.dungeon.activeRoom;
         if (!room) return;
 
+        this.ctx.save();
+        this.ctx.translate(80, 100);
+        this.ctx.scale(0.80, 0.80);
+
+
         // Render Room Floor (Dark flagstone brick dungeon tiles)
         const brickW = 80;
         const brickH = 40;
@@ -1240,8 +1246,11 @@ class Game {
         // Draw Particles
         updateAndDrawParticles(this.ctx);
 
+        this.ctx.restore();
+
         // 12. Draw Room Transition Fade overlay
         if (this.transitioning) {
+
             this.ctx.save();
             const opacity = Math.abs(15 - this.transitionTimer) / 15; // fade out then fade in
             this.ctx.fillStyle = `rgba(0, 0, 0, ${1 - opacity})`;
