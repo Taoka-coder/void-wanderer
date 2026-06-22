@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=19';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=19';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=19';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=19';
-import { ShopkeeperNPC } from './shop.js?v=19';
-import { audio } from './audio.js?v=19';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=20';
+import { Player, Enemy, Boss, Drop } from './entities.js?v=20';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=20';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=20';
+import { ShopkeeperNPC } from './shop.js?v=20';
+import { audio } from './audio.js?v=20';
 
 
 
@@ -865,6 +865,32 @@ class Game {
         if (this.shopkeeperNPC) {
             this.shopkeeperNPC.update(this.player);
         }
+
+        // Update Liquid Drops for Mystery Man Room
+        if (room.type === ROOM_TYPES.MYSTERY) {
+            if (!room.liquidDrops) {
+                room.liquidDrops = [];
+                for (let i = 0; i < 40; i++) {
+                    room.liquidDrops.push({
+                        x: 70 + Math.random() * 660,
+                        y: 70 + Math.random() * 460,
+                        speed: 2.0 + Math.random() * 3.5,
+                        length: 8 + Math.random() * 15,
+                        opacity: 0.15 + Math.random() * 0.55
+                    });
+                }
+            }
+            for (const drop of room.liquidDrops) {
+                drop.y += drop.speed;
+                if (drop.y > 520) {
+                    drop.y = 80;
+                    drop.x = 70 + Math.random() * 660;
+                    drop.speed = 2.0 + Math.random() * 3.5;
+                    drop.length = 8 + Math.random() * 15;
+                    drop.opacity = 0.15 + Math.random() * 0.55;
+                }
+            }
+        }
         
         // Sync Player stats to HUD elements
         document.getElementById('mana-bar').style.width = `${(this.player.mana / this.player.maxMana) * 100}%`;
@@ -1141,11 +1167,18 @@ class Game {
         const brickW = 80;
         const brickH = 40;
         
-        this.ctx.fillStyle = '#050508';
+        if (room.type === ROOM_TYPES.MYSTERY) {
+            const grad = this.ctx.createRadialGradient(400, 300, 30, 400, 300, 380);
+            grad.addColorStop(0, '#1c0c30'); // warm dark purple
+            grad.addColorStop(1, '#07020d'); // dark void black-purple
+            this.ctx.fillStyle = grad;
+        } else {
+            this.ctx.fillStyle = '#050508';
+        }
         this.ctx.fillRect(64, 64, 672, 472);
         
         // Draw flagstone staggered seams
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
+        this.ctx.strokeStyle = room.type === ROOM_TYPES.MYSTERY ? 'rgba(168, 85, 247, 0.08)' : 'rgba(255, 255, 255, 0.015)';
         this.ctx.lineWidth = 1;
         for (let y = 64; y < 536; y += brickH) {
             this.ctx.beginPath();
@@ -1194,6 +1227,27 @@ class Game {
                 this.ctx.lineTo(cx2, cy2);
                 this.ctx.stroke();
             }
+        }
+
+        // Draw Liquid drops in Mystery room
+        if (room.type === ROOM_TYPES.MYSTERY && room.liquidDrops) {
+            this.ctx.save();
+            this.ctx.shadowBlur = 4;
+            this.ctx.shadowColor = '#c084fc';
+            for (const drop of room.liquidDrops) {
+                this.ctx.strokeStyle = `rgba(168, 85, 247, ${drop.opacity})`;
+                this.ctx.lineWidth = 1.5;
+                this.ctx.beginPath();
+                this.ctx.moveTo(drop.x, drop.y);
+                this.ctx.lineTo(drop.x, drop.y + drop.length);
+                this.ctx.stroke();
+
+                this.ctx.fillStyle = `rgba(232, 121, 249, ${drop.opacity * 1.5})`;
+                this.ctx.beginPath();
+                this.ctx.arc(drop.x, drop.y + drop.length, 1.2, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            this.ctx.restore();
         }
 
         // Draw Room border walls (Cuirassier theme blocky stone)
