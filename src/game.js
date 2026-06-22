@@ -1,11 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=16';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=16';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=16';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=16';
-import { audio } from './audio.js?v=16';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=17';
+import { Player, Enemy, Boss, Drop } from './entities.js?v=17';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=17';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=17';
+import { audio } from './audio.js?v=17';
+
 
 
 
@@ -763,11 +764,11 @@ class Game {
                 spawnSparkles(400, 260, '#f59e0b', 12);
             }
 
-            // If Boss Room is cleared, spawn the Next Level Trapdoor
-            if (room.type === ROOM_TYPES.BOSS && room.drops.length === 0) {
-                // Spawn a chest or permanent stat booster
+            // If Boss Room is cleared, spawn the Next Level Portal and Trophy
+            if (room.type === ROOM_TYPES.BOSS) {
                 room.drops.push(new Drop(400, 230, 'trophy'));
             }
+
         }
 
         // Room Status HUD updater
@@ -1048,31 +1049,87 @@ class Game {
         // Right Door
         doorDraw(736, 260, 16, 80, room.doors.right, doorsLocked);
 
-        // Draw Trapdoor for Next Level (Boss room center)
+        // Draw Portal for Next Level (Boss room center)
         if (room.type === ROOM_TYPES.BOSS && room.cleared) {
             this.ctx.save();
-            // Dark staircase ring
-            this.ctx.fillStyle = '#09090b';
-            this.ctx.strokeStyle = '#3f3f46';
-            this.ctx.lineWidth = 3;
+            this.ctx.translate(400, 300);
             
+            // Outer portal glow
+            const time = Date.now() * 0.003;
+            const pulse = Math.sin(Date.now() * 0.005) * 3;
+            const radius = 22 + pulse;
+            
+            this.ctx.shadowBlur = 20;
+            this.ctx.shadowColor = '#c084fc';
+            
+            // Draw deep purple portal disk
+            const grad = this.ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+            grad.addColorStop(0, '#0f0717');
+            grad.addColorStop(0.5, '#581c87');
+            grad.addColorStop(1, '#a855f7');
+            
+            this.ctx.fillStyle = grad;
             this.ctx.beginPath();
-            this.ctx.arc(400, 300, 18, 0, Math.PI*2);
+            this.ctx.arc(0, 0, radius, 0, Math.PI * 2);
             this.ctx.fill();
-            this.ctx.stroke();
             
-            // Inner stairs details
-            this.ctx.fillStyle = '#18181b';
-            this.ctx.fillRect(390, 290, 20, 2);
-            this.ctx.fillRect(393, 296, 14, 2);
-            this.ctx.fillRect(396, 302, 8, 2);
+            // Draw spinning spiral layers for swirling portal effect
+            this.ctx.shadowBlur = 0; // turn off shadow blur for internal speed
+            this.ctx.strokeStyle = '#c084fc';
+            this.ctx.lineWidth = 2;
             
-            this.ctx.font = "bold 9px 'Cinzel', serif";
-            this.ctx.fillStyle = '#e2e8f0';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText("TRAPDOOR", 400, 330);
+            // Layer 1: Spin clockwise
+            this.ctx.save();
+            this.ctx.rotate(time);
+            for (let i = 0; i < 3; i++) {
+                this.ctx.beginPath();
+                this.ctx.rotate((Math.PI * 2) / 3);
+                this.ctx.ellipse(0, 0, radius * 0.8, radius * 0.3, 0.2, 0, Math.PI * 1.5);
+                this.ctx.stroke();
+            }
             this.ctx.restore();
+            
+            // Layer 2: Spin counter-clockwise (faster)
+            this.ctx.save();
+            this.ctx.rotate(-time * 1.5);
+            this.ctx.strokeStyle = '#e9d5ff';
+            this.ctx.lineWidth = 1.5;
+            for (let i = 0; i < 2; i++) {
+                this.ctx.beginPath();
+                this.ctx.rotate(Math.PI);
+                this.ctx.ellipse(0, 0, radius * 0.9, radius * 0.2, -0.2, 0, Math.PI * 1.7);
+                this.ctx.stroke();
+            }
+            this.ctx.restore();
+            
+            // Bright core
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, 5 + pulse * 0.5, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            this.ctx.restore();
+            
+            // Text Label
+            this.ctx.save();
+            this.ctx.font = "bold 9px 'Cinzel', serif";
+            this.ctx.fillStyle = '#c084fc';
+            this.ctx.shadowBlur = 8;
+            this.ctx.shadowColor = '#a855f7';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText("VOID PORTAL", 400, 335);
+            this.ctx.restore();
+            
+            // Spawn swirling purple sparkles in the room
+            if (Math.random() < 0.15) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = radius + 5 + Math.random() * 10;
+                const px = 400 + Math.cos(angle) * dist;
+                const py = 300 + Math.sin(angle) * dist;
+                spawnSparkles(px, py, '#c084fc', 1);
+            }
         }
+
 
         // Draw Obstacles (Stones, webs, campfires, bones)
         for (const obs of room.obstacles) {
