@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=20';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=20';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=20';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=20';
-import { ShopkeeperNPC } from './shop.js?v=20';
-import { audio } from './audio.js?v=20';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=21';
+import { Player, Enemy, Boss, Drop } from './entities.js?v=21';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=21';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=21';
+import { ShopkeeperNPC } from './shop.js?v=21';
+import { audio } from './audio.js?v=21';
 
 
 
@@ -407,7 +407,7 @@ class Game {
         if (this.dungeon.activeRoom.type === ROOM_TYPES.SHOP && 
             !this.shopkeeperInteractedThisLevel && 
             this.level !== this.shopkeeperBannedLevel) {
-            this.shopkeeperNPC = new ShopkeeperNPC(400, 300);
+            this.shopkeeperNPC = new ShopkeeperNPC(400, 230); // Spawn higher up to fit chair and table
         } else {
             this.shopkeeperNPC = null;
         }
@@ -447,9 +447,9 @@ class Game {
     checkShopkeeperInteraction(clicked = false) {
         if (!this.shopkeeperNPC || this.shopkeeperNPC.interacted) return;
 
-        const maxInteractDist = clicked ? 80 : 50;
+        const maxInteractDist = clicked ? 75 : 55;
         const dx = this.player.x - this.shopkeeperNPC.x;
-        const dy = this.player.y - this.shopkeeperNPC.y;
+        const dy = this.player.y - (this.shopkeeperNPC.y + 35); // measure distance from table center
         const dist = Math.sqrt(dx*dx + dy*dy);
 
         if (dist <= maxInteractDist) {
@@ -1172,27 +1172,83 @@ class Game {
             grad.addColorStop(0, '#1c0c30'); // warm dark purple
             grad.addColorStop(1, '#07020d'); // dark void black-purple
             this.ctx.fillStyle = grad;
+            this.ctx.fillRect(64, 64, 672, 472);
+            
+            // Draw flagstone staggered seams
+            this.ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
+            this.ctx.lineWidth = 1;
+            for (let y = 64; y < 536; y += brickH) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(64, y);
+                this.ctx.lineTo(736, y);
+                this.ctx.stroke();
+                
+                const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                const offset = isEvenRow ? 0 : (brickW / 2);
+                for (let x = 64 + offset; x < 736; x += brickW) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    this.ctx.lineTo(x, y + brickH);
+                    this.ctx.stroke();
+                }
+            }
+        } else if (room.type === ROOM_TYPES.SHOP) {
+            // Draw wooden floor planks
+            this.ctx.fillStyle = '#3a200d'; // Warm oak wood floor base
+            this.ctx.fillRect(64, 64, 672, 472);
+            
+            // Draw wood grain lines
+            this.ctx.strokeStyle = '#221105'; // dark plank borders
+            this.ctx.lineWidth = 2.5;
+            
+            const plankH = 28;
+            const plankW = 120;
+            
+            for (let y = 64; y < 536; y += plankH) {
+                // Horizontal plank line
+                this.ctx.beginPath();
+                this.ctx.moveTo(64, y);
+                this.ctx.lineTo(736, y);
+                this.ctx.stroke();
+                
+                // Segment vertical lines
+                const isEven = Math.floor(y / plankH) % 2 === 0;
+                const offset = isEven ? 0 : (plankW / 2);
+                for (let x = 64 + offset; x < 736; x += plankW) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    this.ctx.lineTo(x, y + plankH);
+                    this.ctx.stroke();
+                    
+                    // Draw a little nail head circle near the joints
+                    this.ctx.fillStyle = '#110802';
+                    this.ctx.beginPath();
+                    this.ctx.arc(x + 3, y + 3, 1, 0, Math.PI*2);
+                    this.ctx.arc(x - 3, y + 3, 1, 0, Math.PI*2);
+                    this.ctx.fill();
+                }
+            }
         } else {
             this.ctx.fillStyle = '#050508';
-        }
-        this.ctx.fillRect(64, 64, 672, 472);
-        
-        // Draw flagstone staggered seams
-        this.ctx.strokeStyle = room.type === ROOM_TYPES.MYSTERY ? 'rgba(168, 85, 247, 0.08)' : 'rgba(255, 255, 255, 0.015)';
-        this.ctx.lineWidth = 1;
-        for (let y = 64; y < 536; y += brickH) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(64, y);
-            this.ctx.lineTo(736, y);
-            this.ctx.stroke();
+            this.ctx.fillRect(64, 64, 672, 472);
             
-            const isEvenRow = Math.floor(y / brickH) % 2 === 0;
-            const offset = isEvenRow ? 0 : (brickW / 2);
-            for (let x = 64 + offset; x < 736; x += brickW) {
+            // Draw flagstone staggered seams
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
+            this.ctx.lineWidth = 1;
+            for (let y = 64; y < 536; y += brickH) {
                 this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-                this.ctx.lineTo(x, y + brickH);
+                this.ctx.moveTo(64, y);
+                this.ctx.lineTo(736, y);
                 this.ctx.stroke();
+                
+                const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                const offset = isEvenRow ? 0 : (brickW / 2);
+                for (let x = 64 + offset; x < 736; x += brickW) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    this.ctx.lineTo(x, y + brickH);
+                    this.ctx.stroke();
+                }
             }
         }
 
