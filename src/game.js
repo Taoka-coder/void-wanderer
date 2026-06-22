@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=21';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=21';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=21';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=21';
-import { ShopkeeperNPC } from './shop.js?v=21';
-import { audio } from './audio.js?v=21';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=22';
+import { Player, Enemy, Boss, Drop } from './entities.js?v=22';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=22';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=22';
+import { ShopkeeperNPC } from './shop.js?v=22';
+import { audio } from './audio.js?v=22';
 
 
 
@@ -892,6 +892,158 @@ class Game {
             }
         }
         
+        // Update Boss Room Custom Particles
+        if (room.type === ROOM_TYPES.BOSS) {
+            const bossIndex = Math.min(this.level - 1, 4);
+            if (bossIndex === 0) {
+                // Golem: Butterflies
+                if (!room.butterflies) {
+                    room.butterflies = [];
+                    const colors = ['#f59e0b', '#3b82f6', '#ec4899', '#10b981', '#a855f7', '#14b8a6'];
+                    for (let i = 0; i < 15; i++) {
+                        room.butterflies.push({
+                            x: 100 + Math.random() * 600,
+                            y: 100 + Math.random() * 400,
+                            vx: (Math.random() - 0.5) * 1.2,
+                            vy: (Math.random() - 0.5) * 1.2,
+                            color: colors[Math.floor(Math.random() * colors.length)],
+                            size: 3 + Math.random() * 3,
+                            flapOffset: Math.random() * Math.PI * 2,
+                            targetX: 100 + Math.random() * 600,
+                            targetY: 100 + Math.random() * 400
+                        });
+                    }
+                }
+                for (const b of room.butterflies) {
+                    // Randomly select new targets occasionally for organic steering
+                    if (Math.random() < 0.015) {
+                        b.targetX = 100 + Math.random() * 600;
+                        b.targetY = 100 + Math.random() * 400;
+                    }
+                    const dx = b.targetX - b.x;
+                    const dy = b.targetY - b.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > 10) {
+                        b.vx += (dx / dist) * 0.04;
+                        b.vy += (dy / dist) * 0.04;
+                    }
+                    // Apply speed limit
+                    const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+                    const maxSpeed = 1.6;
+                    if (speed > maxSpeed) {
+                        b.vx = (b.vx / speed) * maxSpeed;
+                        b.vy = (b.vy / speed) * maxSpeed;
+                    }
+                    // Add subtle flutter noise
+                    b.vx += (Math.random() - 0.5) * 0.15;
+                    b.vy += (Math.random() - 0.5) * 0.15;
+                    
+                    b.x += b.vx;
+                    b.y += b.vy;
+                    
+                    // Bounce/clamp within borders
+                    if (b.x < 80) { b.x = 80; b.vx *= -1; }
+                    if (b.x > 720) { b.x = 720; b.vx *= -1; }
+                    if (b.y < 80) { b.y = 80; b.vy *= -1; }
+                    if (b.y > 520) { b.y = 520; b.vy *= -1; }
+                }
+            } else if (bossIndex === 1) {
+                // Shadow Knight: Fog wisps
+                if (!room.shadowFog) {
+                    room.shadowFog = [];
+                    for (let i = 0; i < 20; i++) {
+                        room.shadowFog.push({
+                            x: 70 + Math.random() * 660,
+                            y: 70 + Math.random() * 460,
+                            vx: (Math.random() - 0.5) * 0.5,
+                            vy: (Math.random() - 0.5) * 0.5,
+                            radius: 30 + Math.random() * 40,
+                            opacity: 0.04 + Math.random() * 0.08
+                        });
+                    }
+                }
+                for (const f of room.shadowFog) {
+                    f.x += f.vx;
+                    f.y += f.vy;
+                    // soft boundaries bounce
+                    if (f.x < 64 || f.x > 736) f.vx *= -1;
+                    if (f.y < 64 || f.y > 536) f.vy *= -1;
+                }
+            } else if (bossIndex === 2) {
+                // Necromancer: Cyan/green soul wisps
+                if (!room.necroSouls) {
+                    room.necroSouls = [];
+                    for (let i = 0; i < 25; i++) {
+                        room.necroSouls.push({
+                            x: 80 + Math.random() * 640,
+                            y: 80 + Math.random() * 440,
+                            vy: -(0.4 + Math.random() * 0.8),
+                            vx: (Math.random() - 0.5) * 0.2,
+                            size: 2 + Math.random() * 3,
+                            pulseSpeed: 0.03 + Math.random() * 0.04,
+                            pulseOffset: Math.random() * Math.PI,
+                            opacity: 0.25 + Math.random() * 0.5
+                        });
+                    }
+                }
+                for (const s of room.necroSouls) {
+                    s.y += s.vy;
+                    s.x += s.vx + Math.sin(Date.now() * 0.002 + s.pulseOffset) * 0.15;
+                    if (s.y < 80) {
+                        s.y = 520;
+                        s.x = 80 + Math.random() * 640;
+                    }
+                }
+            } else if (bossIndex === 3) {
+                // Fire Demon: Lava embers
+                if (!room.lavaEmbers) {
+                    room.lavaEmbers = [];
+                    for (let i = 0; i < 30; i++) {
+                        room.lavaEmbers.push({
+                            x: 80 + Math.random() * 640,
+                            y: 80 + Math.random() * 440,
+                            vy: -(0.6 + Math.random() * 1.2),
+                            vx: (Math.random() - 0.5) * 0.4,
+                            size: 1.5 + Math.random() * 2,
+                            opacity: 0.35 + Math.random() * 0.55
+                        });
+                    }
+                }
+                for (const e of room.lavaEmbers) {
+                    e.y += e.vy;
+                    e.x += e.vx;
+                    if (e.y < 80) {
+                        e.y = 520;
+                        e.x = 80 + Math.random() * 640;
+                    }
+                }
+            } else if (bossIndex === 4) {
+                // Void Eye: Cosmic stars
+                if (!room.voidStars) {
+                    room.voidStars = [];
+                    for (let i = 0; i < 40; i++) {
+                        room.voidStars.push({
+                            x: 80 + Math.random() * 640,
+                            y: 80 + Math.random() * 440,
+                            vx: (Math.random() - 0.5) * 0.15,
+                            vy: (Math.random() - 0.5) * 0.15,
+                            size: 1 + Math.random() * 2,
+                            color: Math.random() < 0.6 ? '#a855f7' : '#6366f1',
+                            opacity: 0.3 + Math.random() * 0.6
+                        });
+                    }
+                }
+                for (const s of room.voidStars) {
+                    s.x += s.vx;
+                    s.y += s.vy;
+                    if (s.x < 70 || s.x > 730 || s.y < 70 || s.y > 530) {
+                        s.x = 80 + Math.random() * 640;
+                        s.y = 80 + Math.random() * 440;
+                    }
+                }
+            }
+        }
+
         // Sync Player stats to HUD elements
         document.getElementById('mana-bar').style.width = `${(this.player.mana / this.player.maxMana) * 100}%`;
         document.getElementById('mana-text').textContent = `${Math.floor(this.player.mana)}/${this.player.maxMana}`;
@@ -1228,6 +1380,216 @@ class Game {
                     this.ctx.fill();
                 }
             }
+        } else if (room.type === ROOM_TYPES.BOSS) {
+            const bossIndex = Math.min(this.level - 1, 4);
+            if (bossIndex === 0) {
+                // Forest Golem floor: earthy dark green mossy floor
+                this.ctx.fillStyle = '#091c0e';
+                this.ctx.fillRect(64, 64, 672, 472);
+                
+                // Mossy stone brick boundaries
+                this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.04)';
+                this.ctx.lineWidth = 1;
+                for (let y = 64; y < 536; y += brickH) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(64, y);
+                    this.ctx.lineTo(736, y);
+                    this.ctx.stroke();
+                    
+                    const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                    const offset = isEvenRow ? 0 : (brickW / 2);
+                    for (let x = 64 + offset; x < 736; x += brickW) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, y);
+                        this.ctx.lineTo(x, y + brickH);
+                        this.ctx.stroke();
+                    }
+                }
+                
+                // Draw lush grass blades that character can walk through
+                const grassSeed = room.gridX * 29 + room.gridY * 41;
+                const grassRandom = (s) => {
+                    let val = Math.sin(s) * 12345;
+                    return val - Math.floor(val);
+                };
+                
+                this.ctx.save();
+                for (let i = 0; i < 45; i++) {
+                    const gx = 80 + grassRandom(grassSeed + i * 13) * 620;
+                    const gy = 80 + grassRandom(grassSeed + i * 19) * 420;
+                    
+                    const blades = 3 + Math.floor(grassRandom(grassSeed + i * 5) * 3);
+                    this.ctx.strokeStyle = i % 2 === 0 ? '#16a34a' : '#22c55e';
+                    this.ctx.lineWidth = 1.0 + grassRandom(grassSeed + i * 9) * 0.8;
+                    for (let b = 0; b < blades; b++) {
+                        const bh = 8 + grassRandom(grassSeed + i * 7 + b) * 8;
+                        const angle = (grassRandom(grassSeed + i * 11 + b) - 0.5) * 0.5;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(gx, gy);
+                        this.ctx.quadraticCurveTo(gx - angle * 5, gy - bh * 0.6, gx - angle * 8, gy - bh);
+                        this.ctx.stroke();
+                    }
+                    
+                    // Faint shadow at the base
+                    this.ctx.fillStyle = '#051307';
+                    this.ctx.beginPath();
+                    this.ctx.arc(gx, gy, 1.8, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                this.ctx.restore();
+                
+            } else if (bossIndex === 1) {
+                // Shadow Knight floor: midnight dark shadow blue
+                this.ctx.fillStyle = '#040510';
+                this.ctx.fillRect(64, 64, 672, 472);
+                
+                // Spectral brick boundaries
+                this.ctx.strokeStyle = 'rgba(99, 102, 241, 0.03)';
+                this.ctx.lineWidth = 1;
+                for (let y = 64; y < 536; y += brickH) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(64, y);
+                    this.ctx.lineTo(736, y);
+                    this.ctx.stroke();
+                    
+                    const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                    const offset = isEvenRow ? 0 : (brickW / 2);
+                    for (let x = 64 + offset; x < 736; x += brickW) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, y);
+                        this.ctx.lineTo(x, y + brickH);
+                        this.ctx.stroke();
+                    }
+                }
+            } else if (bossIndex === 2) {
+                // Necromancer floor: tombstone gray
+                this.ctx.fillStyle = '#101012';
+                this.ctx.fillRect(64, 64, 672, 472);
+                
+                this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.05)';
+                this.ctx.lineWidth = 1;
+                for (let y = 64; y < 536; y += brickH) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(64, y);
+                    this.ctx.lineTo(736, y);
+                    this.ctx.stroke();
+                    
+                    const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                    const offset = isEvenRow ? 0 : (brickW / 2);
+                    for (let x = 64 + offset; x < 736; x += brickW) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, y);
+                        this.ctx.lineTo(x, y + brickH);
+                        this.ctx.stroke();
+                    }
+                }
+                
+                // Faint glowing runes
+                const runeSeed = room.gridX * 17 + room.gridY * 43;
+                const runeRandom = (s) => {
+                    let val = Math.sin(s) * 9876;
+                    return val - Math.floor(val);
+                };
+                
+                this.ctx.save();
+                this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.06)';
+                this.ctx.shadowBlur = 4;
+                this.ctx.shadowColor = '#10b981';
+                this.ctx.lineWidth = 1.5;
+                for (let i = 0; i < 6; i++) {
+                    const cx = 150 + runeRandom(runeSeed + i * 3) * 500;
+                    const cy = 150 + runeRandom(runeSeed + i * 7) * 300;
+                    this.ctx.beginPath();
+                    this.ctx.arc(cx, cy, 15 + runeRandom(runeSeed + i * 11) * 20, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                    
+                    // Simple runic lines crossing the circle
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(cx - 10, cy);
+                    this.ctx.lineTo(cx + 10, cy);
+                    this.ctx.moveTo(cx, cy - 10);
+                    this.ctx.lineTo(cx, cy + 10);
+                    this.ctx.stroke();
+                }
+                this.ctx.restore();
+            } else if (bossIndex === 3) {
+                // Fire Demon floor: obsidian tiles with flowing lava cracks
+                this.ctx.fillStyle = '#0a0402';
+                this.ctx.fillRect(64, 64, 672, 472);
+                
+                const pulse = Math.sin(Date.now() * 0.002) * 0.15 + 0.85;
+                const lavaColor = `rgba(${220 + Math.floor(pulse * 35)}, ${60 + Math.floor(pulse * 80)}, 20, 0.35)`;
+                
+                this.ctx.save();
+                this.ctx.shadowBlur = 8;
+                this.ctx.shadowColor = '#ea580c';
+                this.ctx.strokeStyle = lavaColor;
+                this.ctx.lineWidth = 2.5;
+                
+                const lavaSeed = room.gridX * 31 + room.gridY * 47;
+                const lavaRandom = (s) => {
+                    let val = Math.sin(s) * 14725;
+                    return val - Math.floor(val);
+                };
+                
+                for (let i = 0; i < 8; i++) {
+                    const lx = 100 + lavaRandom(lavaSeed + i * 7) * 580;
+                    const ly = 100 + lavaRandom(lavaSeed + i * 9) * 380;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(lx, ly);
+                    const lx2 = lx + (lavaRandom(lavaSeed + i * 11) - 0.5) * 80;
+                    const ly2 = ly + (lavaRandom(lavaSeed + i * 13) - 0.5) * 80;
+                    this.ctx.lineTo(lx2, ly2);
+                    const lx3 = lx2 + (lavaRandom(lavaSeed + i * 15) - 0.5) * 80;
+                    const ly3 = ly2 + (lavaRandom(lavaSeed + i * 17) - 0.5) * 80;
+                    this.ctx.lineTo(lx3, ly3);
+                    this.ctx.stroke();
+                }
+                this.ctx.restore();
+                
+                // Dark red brick boundaries
+                this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.03)';
+                this.ctx.lineWidth = 1;
+                for (let y = 64; y < 536; y += brickH) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(64, y);
+                    this.ctx.lineTo(736, y);
+                    this.ctx.stroke();
+                    
+                    const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                    const offset = isEvenRow ? 0 : (brickW / 2);
+                    for (let x = 64 + offset; x < 736; x += brickW) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, y);
+                        this.ctx.lineTo(x, y + brickH);
+                        this.ctx.stroke();
+                    }
+                }
+            } else if (bossIndex === 4) {
+                // Void Eye floor: cosmic starry nebula void
+                const voidGrad = this.ctx.createRadialGradient(400, 300, 30, 400, 300, 380);
+                voidGrad.addColorStop(0, '#04010b');
+                voidGrad.addColorStop(0.5, '#010004');
+                voidGrad.addColorStop(1, '#000000');
+                this.ctx.fillStyle = voidGrad;
+                this.ctx.fillRect(64, 64, 672, 472);
+                
+                // Draw a faint nebular grid lines
+                this.ctx.strokeStyle = 'rgba(168, 85, 247, 0.015)';
+                this.ctx.lineWidth = 0.5;
+                for (let y = 64; y < 536; y += brickH) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(64, y);
+                    this.ctx.lineTo(736, y);
+                    this.ctx.stroke();
+                }
+                for (let x = 64; x < 736; x += brickW) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 64);
+                    this.ctx.lineTo(x, 536);
+                    this.ctx.stroke();
+                }
+            }
         } else {
             this.ctx.fillStyle = '#050508';
             this.ctx.fillRect(64, 64, 672, 472);
@@ -1252,36 +1614,38 @@ class Game {
             }
         }
 
-        // Draw deterministic cracks and moss patches on the floor based on grid coordinates
-        const seed = room.gridX * 13 + room.gridY * 37;
-        const pseudoRandom = (s) => {
-            let val = Math.sin(s) * 10000;
-            return val - Math.floor(val);
-        };
+        // Draw deterministic cracks and moss patches on the floor based on grid coordinates (bypassed for boss rooms)
+        if (room.type !== ROOM_TYPES.BOSS && room.type !== ROOM_TYPES.SHOP) {
+            const seed = room.gridX * 13 + room.gridY * 37;
+            const pseudoRandom = (s) => {
+                let val = Math.sin(s) * 10000;
+                return val - Math.floor(val);
+            };
 
-        for (let i = 0; i < 8; i++) {
-            const px = 100 + pseudoRandom(seed + i * 7) * 580;
-            const py = 100 + pseudoRandom(seed + i * 11) * 380;
-            
-            if (pseudoRandom(seed + i * 3) < 0.45) {
-                // Moss patch
-                this.ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
-                this.ctx.beginPath();
-                this.ctx.arc(px, py, 20 + pseudoRandom(seed + i * 5) * 30, 0, Math.PI * 2);
-                this.ctx.fill();
-            } else {
-                // Dungeon floor crack
-                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
-                this.ctx.lineWidth = 1.5;
-                this.ctx.beginPath();
-                this.ctx.moveTo(px, py);
-                const cx1 = px + (pseudoRandom(seed + i * 4) - 0.5) * 20;
-                const cy1 = py + (pseudoRandom(seed + i * 6) - 0.5) * 20;
-                const cx2 = cx1 + (pseudoRandom(seed + i * 8) - 0.5) * 20;
-                const cy2 = cy1 + (pseudoRandom(seed + i * 10) - 0.5) * 20;
-                this.ctx.lineTo(cx1, cy1);
-                this.ctx.lineTo(cx2, cy2);
-                this.ctx.stroke();
+            for (let i = 0; i < 8; i++) {
+                const px = 100 + pseudoRandom(seed + i * 7) * 580;
+                const py = 100 + pseudoRandom(seed + i * 11) * 380;
+                
+                if (pseudoRandom(seed + i * 3) < 0.45) {
+                    // Moss patch
+                    this.ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(px, py, 20 + pseudoRandom(seed + i * 5) * 30, 0, Math.PI * 2);
+                    this.ctx.fill();
+                } else {
+                    // Dungeon floor crack
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
+                    this.ctx.lineWidth = 1.5;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(px, py);
+                    const cx1 = px + (pseudoRandom(seed + i * 4) - 0.5) * 20;
+                    const cy1 = py + (pseudoRandom(seed + i * 6) - 0.5) * 20;
+                    const cx2 = cx1 + (pseudoRandom(seed + i * 8) - 0.5) * 20;
+                    const cy2 = cy1 + (pseudoRandom(seed + i * 10) - 0.5) * 20;
+                    this.ctx.lineTo(cx1, cy1);
+                    this.ctx.lineTo(cx2, cy2);
+                    this.ctx.stroke();
+                }
             }
         }
 
@@ -1636,6 +2000,83 @@ class Game {
 
         // Draw Particles
         updateAndDrawParticles(this.ctx);
+        
+        // Draw Boss Room Custom Particles
+        if (room.type === ROOM_TYPES.BOSS) {
+            const bossIndex = Math.min(this.level - 1, 4);
+            if (bossIndex === 0 && room.butterflies) {
+                for (const b of room.butterflies) {
+                    this.ctx.save();
+                    this.ctx.translate(b.x, b.y);
+                    
+                    const flap = Math.sin(Date.now() * 0.015 + b.flapOffset);
+                    const wingWidth = b.size * Math.max(0.15, Math.abs(flap));
+                    
+                    this.ctx.fillStyle = b.color;
+                    
+                    // Left wing
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(-b.size * 0.5, -b.size * 0.2, wingWidth, b.size * 0.7, -0.25, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Right wing
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(b.size * 0.5, -b.size * 0.2, wingWidth, b.size * 0.7, 0.25, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Body
+                    this.ctx.fillStyle = '#1c1917';
+                    this.ctx.fillRect(-0.8, -b.size * 0.7, 1.6, b.size * 1.4);
+                    
+                    this.ctx.restore();
+                }
+            } else if (bossIndex === 1 && room.shadowFog) {
+                this.ctx.save();
+                for (const f of room.shadowFog) {
+                    this.ctx.fillStyle = `rgba(18, 12, 38, ${f.opacity})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                this.ctx.restore();
+            } else if (bossIndex === 2 && room.necroSouls) {
+                this.ctx.save();
+                this.ctx.shadowBlur = 6;
+                this.ctx.shadowColor = '#10b981';
+                for (const s of room.necroSouls) {
+                    const alpha = s.opacity * (0.6 + Math.sin(Date.now() * s.pulseSpeed + s.pulseOffset) * 0.4);
+                    this.ctx.fillStyle = `rgba(16, 185, 129, ${alpha})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                this.ctx.restore();
+            } else if (bossIndex === 3 && room.lavaEmbers) {
+                this.ctx.save();
+                this.ctx.shadowBlur = 8;
+                this.ctx.shadowColor = '#f97316';
+                for (const e of room.lavaEmbers) {
+                    const heatColor = Math.random() < 0.4 ? '#facc15' : '#f97316';
+                    this.ctx.fillStyle = heatColor;
+                    this.ctx.globalAlpha = e.opacity;
+                    this.ctx.fillRect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
+                }
+                this.ctx.restore();
+            } else if (bossIndex === 4 && room.voidStars) {
+                this.ctx.save();
+                this.ctx.shadowBlur = 4;
+                this.ctx.shadowColor = '#c084fc';
+                for (const s of room.voidStars) {
+                    const flicker = s.opacity * (0.7 + Math.sin(Date.now() * 0.005 + s.x) * 0.3);
+                    this.ctx.fillStyle = s.color;
+                    this.ctx.globalAlpha = flicker;
+                    this.ctx.beginPath();
+                    this.ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                this.ctx.restore();
+            }
+        }
 
         this.ctx.restore();
 
