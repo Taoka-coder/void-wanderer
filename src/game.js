@@ -1,11 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=18';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=18';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=18';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=18';
-import { audio } from './audio.js?v=18';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=19';
+import { Player, Enemy, Boss, Drop } from './entities.js?v=19';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=19';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=19';
+import { ShopkeeperNPC } from './shop.js?v=19';
+import { audio } from './audio.js?v=19';
 
 
 
@@ -26,6 +27,7 @@ class Game {
             START: 'start',
             PLAYING: 'playing',
             GAMBLE: 'gamble',
+            SHOP: 'shop',
             GAMEOVER: 'gameover',
             VICTORY: 'victory',
             SETTINGS: 'settings'
@@ -64,6 +66,9 @@ class Game {
         this.projectiles = [];
         this.mysteryManNPC = null;
         this.mysteryManInteractedThisLevel = false;
+        this.shopkeeperNPC = null;
+        this.shopkeeperBannedLevel = -1;
+        this.shopkeeperInteractedThisLevel = false;
 
         // Stat tracking for summary screen
         this.mobsKilled = 0;
@@ -146,6 +151,7 @@ class Game {
                                               (e.code && e.code.toLowerCase() === 'key' + interactKey);
                     if (isInteractPressed) {
                         this.checkMysteryManInteraction();
+                        this.checkShopkeeperInteraction();
                     }
                 }
             } catch (err) {
@@ -198,6 +204,7 @@ class Game {
                 // Custom click interaction with Mystery Man if within click distance
                 if (this.currentState === this.states.PLAYING) {
                     this.checkMysteryManInteraction(true);
+                    this.checkShopkeeperInteraction(true);
                 }
             }
         });
@@ -318,6 +325,20 @@ class Game {
             this.closeGambleOverlay();
         });
 
+        // Shop listeners
+        document.getElementById('btn-shop-buy-stat').addEventListener('click', () => {
+            this.buyShopStatUp();
+        });
+        document.getElementById('btn-shop-buy-heal').addEventListener('click', () => {
+            this.buyShopHeal();
+        });
+        document.getElementById('btn-shop-rob').addEventListener('click', () => {
+            this.robShopkeeper();
+        });
+        document.getElementById('btn-shop-close').addEventListener('click', () => {
+            this.closeShopOverlay();
+        });
+
         // Weapon HUD clicks
         document.getElementById('slot-sword').addEventListener('click', () => this.selectWeapon('sword'));
         document.getElementById('slot-bow').addEventListener('click', () => this.selectWeapon('bow'));
@@ -355,6 +376,7 @@ class Game {
         this.projectiles = [];
         clearParticles();
         this.mysteryManInteractedThisLevel = false;
+        this.shopkeeperInteractedThisLevel = false;
         
         // Reset player positions to start room center
         this.player.x = 400;
@@ -362,6 +384,7 @@ class Game {
         
         this.dungeon.activeRoom.visited = true;
         this.setupMysteryManNPC();
+        this.setupShopkeeperNPC();
 
         // Refresh HTML stats HUD
         this.updateHUDStats();
@@ -377,6 +400,16 @@ class Game {
             this.mysteryManNPC = new MysteryManNPC(400, 300);
         } else {
             this.mysteryManNPC = null;
+        }
+    }
+
+    setupShopkeeperNPC() {
+        if (this.dungeon.activeRoom.type === ROOM_TYPES.SHOP && 
+            !this.shopkeeperInteractedThisLevel && 
+            this.level !== this.shopkeeperBannedLevel) {
+            this.shopkeeperNPC = new ShopkeeperNPC(400, 300);
+        } else {
+            this.shopkeeperNPC = null;
         }
     }
 
@@ -408,6 +441,176 @@ class Game {
             // Open interaction UI
             this.currentState = this.states.GAMBLE;
             document.getElementById('mystery-overlay').classList.remove('hidden');
+        }
+    }
+
+    checkShopkeeperInteraction(clicked = false) {
+        if (!this.shopkeeperNPC || this.shopkeeperNPC.interacted) return;
+
+        const maxInteractDist = clicked ? 80 : 50;
+        const dx = this.player.x - this.shopkeeperNPC.x;
+        const dy = this.player.y - this.shopkeeperNPC.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist <= maxInteractDist) {
+            // Open interaction UI
+            this.currentState = this.states.SHOP;
+            
+            // Set initial state of shop buttons (reset sold out classes)
+            document.getElementById('shop-item-stat').classList.remove('sold-out');
+            document.getElementById('shop-item-heal').classList.remove('sold-out');
+            document.getElementById('btn-shop-buy-stat').disabled = false;
+            document.getElementById('btn-shop-buy-heal').disabled = false;
+            document.getElementById('btn-shop-rob').disabled = false;
+            
+            // Update coins display
+            document.getElementById('shop-coins-display').textContent = this.player.coins || 0;
+            document.getElementById('shop-overlay').classList.remove('hidden');
+        }
+    }
+
+    buyShopStatUp() {
+        if (this.player.coins < 15) {
+            audio.play('player_hit'); // Buzz error sound
+            spawnFloatingText(this.player.x, this.player.y - 30, "NOT ENOUGH COINS", '#ef4444', 12);
+            return;
+        }
+
+        this.player.coins -= 15;
+        document.getElementById('shop-coins-display').textContent = this.player.coins;
+        this.updateHUDStats();
+        audio.play('gamble_end'); // Magical positive chime
+
+        // Apply a random stat up: Damage, Attack Speed, Speed, or Max HP
+        const statType = Math.floor(Math.random() * 4);
+        let text = "";
+        let color = "";
+        
+        if (statType === 0) {
+            this.player.damage += 1.0;
+            text = "+1.0 Damage!";
+            color = '#f59e0b';
+        } else if (statType === 1) {
+            this.player.attackSpeed += 0.35;
+            text = "+35% Attack Speed!";
+            color = '#a855f7';
+        } else if (statType === 2) {
+            this.player.speed += 0.5;
+            text = "+0.5 Speed!";
+            color = '#10b981';
+        } else {
+            this.player.addMaxHealth(1);
+            this.player.heal(1);
+            text = "+1 Max Heart!";
+            color = '#ef4444';
+        }
+
+        // Float text above player
+        spawnFloatingText(this.player.x, this.player.y - 30, text, color, 14);
+        spawnSparkles(this.player.x, this.player.y, color, 15);
+
+        // Mark item as sold out
+        document.getElementById('shop-item-stat').classList.add('sold-out');
+        document.getElementById('btn-shop-buy-stat').disabled = true;
+
+        this.updateHUDHealth();
+    }
+
+    buyShopHeal() {
+        if (this.player.coins < 5) {
+            audio.play('player_hit'); // Buzz sound
+            spawnFloatingText(this.player.x, this.player.y - 30, "NOT ENOUGH COINS", '#ef4444', 12);
+            return;
+        }
+        if (this.player.health >= this.player.maxHealth) {
+            audio.play('player_hit'); // Buzz sound
+            spawnFloatingText(this.player.x, this.player.y - 30, "HEALTH ALREADY FULL", '#cbd5e1', 12);
+            return;
+        }
+
+        this.player.coins -= 5;
+        document.getElementById('shop-coins-display').textContent = this.player.coins;
+        
+        this.player.heal(2); // Heals 2 full hearts
+        this.updateHUDHealth();
+        audio.play('heal');
+
+        spawnFloatingText(this.player.x, this.player.y - 30, "+2 Hearts Healed!", '#ef4444', 14);
+        spawnSparkles(this.player.x, this.player.y, '#ef4444', 10);
+
+        // Mark item as sold out
+        document.getElementById('shop-item-heal').classList.add('sold-out');
+        document.getElementById('btn-shop-buy-heal').disabled = true;
+    }
+
+    robShopkeeper() {
+        this.shopkeeperNPC.interacted = true;
+        
+        const success = Math.random() < 0.3;
+        
+        if (success) {
+            // Robbery success: free random stat up and full heal
+            audio.play('gamble_end');
+            
+            // Full heal
+            this.player.health = this.player.maxHealth;
+            this.updateHUDHealth();
+
+            // Random stat up
+            const statType = Math.floor(Math.random() * 4);
+            let text = "";
+            let color = "";
+            
+            if (statType === 0) {
+                this.player.damage += 1.0;
+                text = "+1.0 Damage!";
+                color = '#f59e0b';
+            } else if (statType === 1) {
+                this.player.attackSpeed += 0.35;
+                text = "+35% Attack Speed!";
+                color = '#a855f7';
+            } else if (statType === 2) {
+                this.player.speed += 0.5;
+                text = "+0.5 Speed!";
+                color = '#10b981';
+            } else {
+                this.player.addMaxHealth(1);
+                this.player.heal(1);
+                text = "+1 Max Heart!";
+                color = '#ef4444';
+            }
+            
+            spawnFloatingText(this.player.x, this.player.y - 30, "ROBBERY SUCCESS! " + text, '#10b981', 14);
+            spawnSparkles(this.player.x, this.player.y, '#10b981', 20);
+
+            // Merchant leaves
+            spawnSmoke(this.shopkeeperNPC.x, this.shopkeeperNPC.y, 15);
+            this.shopkeeperNPC = null;
+            this.shopkeeperInteractedThisLevel = true;
+            
+            this.closeShopOverlay();
+        } else {
+            // Robbery failure: NPC disappears, banned next level
+            audio.play('boss_die'); // dramatic fail sound
+            
+            this.shopkeeperBannedLevel = this.level + 1;
+            
+            spawnFloatingText(this.player.x, this.player.y - 30, "ROBBERY FAILED! MERCHANT VANISHED", '#ef4444', 14);
+            
+            // Merchant vanishes in smoke
+            spawnSmoke(this.shopkeeperNPC.x, this.shopkeeperNPC.y, 35);
+            this.shopkeeperNPC = null;
+            this.shopkeeperInteractedThisLevel = true;
+
+            this.closeShopOverlay();
+        }
+    }
+
+    closeShopOverlay() {
+        document.getElementById('shop-overlay').classList.add('hidden');
+        this.currentState = this.states.PLAYING;
+        if (this.canvas) {
+            this.canvas.focus();
         }
     }
 
@@ -521,6 +724,7 @@ class Game {
         // Set room as visited
         targetRoom.visited = true;
         this.setupMysteryManNPC();
+        this.setupShopkeeperNPC();
 
         // Reposition player to opposite wall
         if (this.transitionDir === 'up') {
@@ -594,6 +798,11 @@ class Game {
         document.getElementById('stat-ats').textContent = this.player.attackSpeed.toFixed(2);
         document.getElementById('stat-speed').textContent = this.player.speed.toFixed(1);
         document.getElementById('stat-range').textContent = Math.round(this.player.range);
+        
+        const coinsEl = document.getElementById('stat-coins');
+        if (coinsEl) {
+            coinsEl.textContent = this.player.coins || 0;
+        }
     }
 
     updateLevelDisplay() {
@@ -648,6 +857,14 @@ class Game {
 
         // 3. Update Player
         this.player.update(this.keys, this.mouse, room.obstacles, room, this.keyBinds);
+        
+        // Update NPCs
+        if (this.mysteryManNPC) {
+            this.mysteryManNPC.update(this.player);
+        }
+        if (this.shopkeeperNPC) {
+            this.shopkeeperNPC.update(this.player);
+        }
         
         // Sync Player stats to HUD elements
         document.getElementById('mana-bar').style.width = `${(this.player.mana / this.player.maxMana) * 100}%`;
@@ -1284,6 +1501,11 @@ class Game {
             this.mysteryManNPC.draw(this.ctx);
         }
 
+        // Draw Shopkeeper NPC
+        if (this.shopkeeperNPC) {
+            this.shopkeeperNPC.draw(this.ctx);
+        }
+
         // Draw Enemies
         for (const mob of room.mobs) {
             mob.draw(this.ctx);
@@ -1402,6 +1624,7 @@ class Game {
                 mobsKilled: this.mobsKilled,
                 roomsCleared: this.roomsCleared,
                 mysteryManInteractedThisLevel: this.mysteryManInteractedThisLevel,
+                shopkeeperBannedLevel: this.shopkeeperBannedLevel,
                 player: {
                     maxHealth: this.player.maxHealth,
                     health: this.player.health,
@@ -1411,7 +1634,8 @@ class Game {
                     attackSpeed: this.player.attackSpeed,
                     speed: this.player.speed,
                     range: this.player.range,
-                    currentWeapon: this.player.currentWeapon
+                    currentWeapon: this.player.currentWeapon,
+                    coins: this.player.coins || 0
                 }
             };
             
@@ -1452,11 +1676,14 @@ class Game {
             this.player.attackSpeed = p.attackSpeed;
             this.player.speed = p.speed;
             this.player.range = p.range;
+            this.player.coins = p.coins || 0;
             
             this.selectWeapon(p.currentWeapon);
+            this.shopkeeperBannedLevel = saveData.shopkeeperBannedLevel || -1;
             this.generateLevel();
             this.mysteryManInteractedThisLevel = saveData.mysteryManInteractedThisLevel || false;
             this.setupMysteryManNPC();
+            this.setupShopkeeperNPC();
 
             this.currentState = this.states.PLAYING;
             audio.startMusic();
