@@ -300,8 +300,8 @@ body {
 
 /* Minimap styling */
 #minimap-container {
-    width: 64px;
-    height: 64px;
+    width: 88px;
+    height: 88px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 6px;
     overflow: hidden;
