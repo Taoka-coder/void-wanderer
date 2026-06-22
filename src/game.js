@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=22';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=22';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=22';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=22';
-import { ShopkeeperNPC } from './shop.js?v=22';
-import { audio } from './audio.js?v=22';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=23';
+import { Player, Enemy, Boss, Drop } from './entities.js?v=23';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=23';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=23';
+import { ShopkeeperNPC } from './shop.js?v=23';
+import { audio } from './audio.js?v=23';
 
 
 
@@ -2088,6 +2088,11 @@ class Game {
             this.ctx.fillStyle = `rgba(0, 0, 0, ${1 - opacity})`;
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             this.ctx.restore();
+        }
+
+        // Redraw minimap every frame so the pulsing player dot animates
+        if (this.dungeon && this.currentState === this.states.PLAYING) {
+            this.dungeon.drawMinimap(this.minimapCtx);
         }
     }
 
