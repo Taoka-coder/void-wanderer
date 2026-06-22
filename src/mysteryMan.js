@@ -1,6 +1,6 @@
 // Mystery Man interaction system for Void Wanderer
 
-import { spawnSmoke, spawnSparkles, spawnFloatingText } from './particles.js?v=16';
+import { spawnSmoke, spawnSparkles, spawnFloatingText } from './particles.js?v=17';
 
 export class MysteryManNPC {
     constructor(x, y) {
