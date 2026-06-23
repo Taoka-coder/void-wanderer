@@ -1,6 +1,6 @@
 // Shopkeeper Merchant NPC system for Void Wanderer
 
-import { spawnSmoke, spawnSparkles, spawnFloatingText } from './particles.js?v=23';
+import { spawnSmoke, spawnSparkles, spawnFloatingText } from './particles.js?v=24';
 
 export class ShopkeeperNPC {
     constructor(x, y) {
