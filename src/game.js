@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=23';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=23';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=23';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=23';
-import { ShopkeeperNPC } from './shop.js?v=23';
-import { audio } from './audio.js?v=23';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=24';
+import { Player, Enemy, Boss, Drop } from './entities.js?v=24';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=24';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=24';
+import { ShopkeeperNPC } from './shop.js?v=24';
+import { audio } from './audio.js?v=24';
 
 
 
@@ -689,7 +689,9 @@ class Game {
             }
         } else if (room.type === ROOM_TYPES.BOSS) {
             // Spawn Level Boss
-            room.mobs.push(new Boss(400, 260, this.level));
+            const boss = new Boss(400, 260, this.level);
+            room.bossVariant = boss.bossVariant;
+            room.mobs.push(boss);
             spawnSmoke(400, 260, 15);
         }
     }
@@ -895,150 +897,380 @@ class Game {
         // Update Boss Room Custom Particles
         if (room.type === ROOM_TYPES.BOSS) {
             const bossIndex = Math.min(this.level - 1, 4);
+            const bossVariant = room.bossVariant !== undefined ? room.bossVariant : 0;
+            
             if (bossIndex === 0) {
-                // Golem: Butterflies
-                if (!room.butterflies) {
-                    room.butterflies = [];
-                    const colors = ['#f59e0b', '#3b82f6', '#ec4899', '#10b981', '#a855f7', '#14b8a6'];
-                    for (let i = 0; i < 15; i++) {
-                        room.butterflies.push({
-                            x: 100 + Math.random() * 600,
-                            y: 100 + Math.random() * 400,
-                            vx: (Math.random() - 0.5) * 1.2,
-                            vy: (Math.random() - 0.5) * 1.2,
-                            color: colors[Math.floor(Math.random() * colors.length)],
-                            size: 3 + Math.random() * 3,
-                            flapOffset: Math.random() * Math.PI * 2,
-                            targetX: 100 + Math.random() * 600,
-                            targetY: 100 + Math.random() * 400
-                        });
+                if (bossVariant === 0) {
+                    // Golem: Butterflies
+                    if (!room.butterflies) {
+                        room.butterflies = [];
+                        const colors = ['#f59e0b', '#3b82f6', '#ec4899', '#10b981', '#a855f7', '#14b8a6'];
+                        for (let i = 0; i < 15; i++) {
+                            room.butterflies.push({
+                                x: 100 + Math.random() * 600,
+                                y: 100 + Math.random() * 400,
+                                vx: (Math.random() - 0.5) * 1.2,
+                                vy: (Math.random() - 0.5) * 1.2,
+                                color: colors[Math.floor(Math.random() * colors.length)],
+                                size: 3 + Math.random() * 3,
+                                flapOffset: Math.random() * Math.PI * 2,
+                                targetX: 100 + Math.random() * 600,
+                                targetY: 100 + Math.random() * 400
+                            });
+                        }
                     }
-                }
-                for (const b of room.butterflies) {
-                    // Randomly select new targets occasionally for organic steering
-                    if (Math.random() < 0.015) {
-                        b.targetX = 100 + Math.random() * 600;
-                        b.targetY = 100 + Math.random() * 400;
+                    for (const b of room.butterflies) {
+                        if (Math.random() < 0.015) {
+                            b.targetX = 100 + Math.random() * 600;
+                            b.targetY = 100 + Math.random() * 400;
+                        }
+                        const dx = b.targetX - b.x;
+                        const dy = b.targetY - b.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist > 10) {
+                            b.vx += (dx / dist) * 0.04;
+                            b.vy += (dy / dist) * 0.04;
+                        }
+                        const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+                        const maxSpeed = 1.6;
+                        if (speed > maxSpeed) {
+                            b.vx = (b.vx / speed) * maxSpeed;
+                            b.vy = (b.vy / speed) * maxSpeed;
+                        }
+                        b.vx += (Math.random() - 0.5) * 0.15;
+                        b.vy += (Math.random() - 0.5) * 0.15;
+                        
+                        b.x += b.vx;
+                        b.y += b.vy;
+                        
+                        if (b.x < 80) { b.x = 80; b.vx *= -1; }
+                        if (b.x > 720) { b.x = 720; b.vx *= -1; }
+                        if (b.y < 80) { b.y = 80; b.vy *= -1; }
+                        if (b.y > 520) { b.y = 520; b.vy *= -1; }
                     }
-                    const dx = b.targetX - b.x;
-                    const dy = b.targetY - b.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist > 10) {
-                        b.vx += (dx / dist) * 0.04;
-                        b.vy += (dy / dist) * 0.04;
+                } else if (bossVariant === 1) {
+                    // Giant Spider: Spore puffs
+                    if (!room.sporePuffs) {
+                        room.sporePuffs = [];
+                        for (let i = 0; i < 20; i++) {
+                            room.sporePuffs.push({
+                                x: 80 + Math.random() * 640,
+                                y: 80 + Math.random() * 440,
+                                vx: (Math.random() - 0.5) * 0.4,
+                                vy: -(0.3 + Math.random() * 0.6),
+                                size: 2 + Math.random() * 3,
+                                opacity: 0.3 + Math.random() * 0.4
+                            });
+                        }
                     }
-                    // Apply speed limit
-                    const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-                    const maxSpeed = 1.6;
-                    if (speed > maxSpeed) {
-                        b.vx = (b.vx / speed) * maxSpeed;
-                        b.vy = (b.vy / speed) * maxSpeed;
+                    for (const p of room.sporePuffs) {
+                        p.y += p.vy;
+                        p.x += p.vx + Math.sin(Date.now() * 0.003 + p.y) * 0.15;
+                        if (p.y < 80) {
+                            p.y = 520;
+                            p.x = 80 + Math.random() * 640;
+                        }
                     }
-                    // Add subtle flutter noise
-                    b.vx += (Math.random() - 0.5) * 0.15;
-                    b.vy += (Math.random() - 0.5) * 0.15;
-                    
-                    b.x += b.vx;
-                    b.y += b.vy;
-                    
-                    // Bounce/clamp within borders
-                    if (b.x < 80) { b.x = 80; b.vx *= -1; }
-                    if (b.x > 720) { b.x = 720; b.vx *= -1; }
-                    if (b.y < 80) { b.y = 80; b.vy *= -1; }
-                    if (b.y > 520) { b.y = 520; b.vy *= -1; }
+                } else {
+                    // Ancient Treant: Swirling leaves
+                    if (!room.swirlingLeaves) {
+                        room.swirlingLeaves = [];
+                        for (let i = 0; i < 20; i++) {
+                            room.swirlingLeaves.push({
+                                x: 80 + Math.random() * 640,
+                                y: 80 + Math.random() * 440,
+                                vy: 0.5 + Math.random() * 0.8,
+                                vx: -(0.5 + Math.random() * 0.5),
+                                size: 3 + Math.random() * 4,
+                                angle: Math.random() * Math.PI,
+                                rotSpeed: 0.01 + Math.random() * 0.02,
+                                color: Math.random() < 0.5 ? '#b45309' : '#ea580c'
+                            });
+                        }
+                    }
+                    for (const l of room.swirlingLeaves) {
+                        l.y += l.vy;
+                        l.x += l.vx + Math.sin(Date.now() * 0.005 + l.y) * 0.3;
+                        l.angle += l.rotSpeed;
+                        if (l.y > 520 || l.x < 80) {
+                            l.y = 80;
+                            l.x = 120 + Math.random() * 600;
+                        }
+                    }
                 }
             } else if (bossIndex === 1) {
-                // Shadow Knight: Fog wisps
-                if (!room.shadowFog) {
-                    room.shadowFog = [];
-                    for (let i = 0; i < 20; i++) {
-                        room.shadowFog.push({
-                            x: 70 + Math.random() * 660,
-                            y: 70 + Math.random() * 460,
-                            vx: (Math.random() - 0.5) * 0.5,
-                            vy: (Math.random() - 0.5) * 0.5,
-                            radius: 30 + Math.random() * 40,
-                            opacity: 0.04 + Math.random() * 0.08
-                        });
+                if (bossVariant === 0) {
+                    // Shadow Knight: Fog wisps
+                    if (!room.shadowFog) {
+                        room.shadowFog = [];
+                        for (let i = 0; i < 20; i++) {
+                            room.shadowFog.push({
+                                x: 70 + Math.random() * 660,
+                                y: 70 + Math.random() * 460,
+                                vx: (Math.random() - 0.5) * 0.5,
+                                vy: (Math.random() - 0.5) * 0.5,
+                                radius: 30 + Math.random() * 40,
+                                opacity: 0.04 + Math.random() * 0.08
+                            });
+                        }
                     }
-                }
-                for (const f of room.shadowFog) {
-                    f.x += f.vx;
-                    f.y += f.vy;
-                    // soft boundaries bounce
-                    if (f.x < 64 || f.x > 736) f.vx *= -1;
-                    if (f.y < 64 || f.y > 536) f.vy *= -1;
+                    for (const f of room.shadowFog) {
+                        f.x += f.vx;
+                        f.y += f.vy;
+                        if (f.x < 64 || f.x > 736) f.vx *= -1;
+                        if (f.y < 64 || f.y > 536) f.vy *= -1;
+                    }
+                } else if (bossVariant === 1) {
+                    // Phantom Witch: Arcane glyphs
+                    if (!room.arcaneGlyphs) {
+                        room.arcaneGlyphs = [];
+                        for (let i = 0; i < 15; i++) {
+                            room.arcaneGlyphs.push({
+                                x: 80 + Math.random() * 640,
+                                y: 80 + Math.random() * 440,
+                                vy: -(0.2 + Math.random() * 0.4),
+                                size: 4 + Math.random() * 4,
+                                text: ['✳', '✡', '★', '❈', '✦'][Math.floor(Math.random() * 5)],
+                                opacity: 0.2 + Math.random() * 0.5
+                            });
+                        }
+                    }
+                    for (const g of room.arcaneGlyphs) {
+                        g.y += g.vy;
+                        if (g.y < 80) {
+                            g.y = 520;
+                            g.x = 80 + Math.random() * 640;
+                        }
+                    }
+                } else {
+                    // Dark Gargoyle: Crumble dust / gray fog
+                    if (!room.stoneFog) {
+                        room.stoneFog = [];
+                        for (let i = 0; i < 15; i++) {
+                            room.stoneFog.push({
+                                x: 70 + Math.random() * 660,
+                                y: 70 + Math.random() * 460,
+                                vx: (Math.random() - 0.5) * 0.4,
+                                vy: (Math.random() - 0.5) * 0.4,
+                                radius: 20 + Math.random() * 25,
+                                opacity: 0.05 + Math.random() * 0.06
+                            });
+                        }
+                    }
+                    for (const f of room.stoneFog) {
+                        f.x += f.vx;
+                        f.y += f.vy;
+                        if (f.x < 64 || f.x > 736) f.vx *= -1;
+                        if (f.y < 64 || f.y > 536) f.vy *= -1;
+                    }
                 }
             } else if (bossIndex === 2) {
-                // Necromancer: Cyan/green soul wisps
-                if (!room.necroSouls) {
-                    room.necroSouls = [];
-                    for (let i = 0; i < 25; i++) {
-                        room.necroSouls.push({
-                            x: 80 + Math.random() * 640,
-                            y: 80 + Math.random() * 440,
-                            vy: -(0.4 + Math.random() * 0.8),
-                            vx: (Math.random() - 0.5) * 0.2,
-                            size: 2 + Math.random() * 3,
-                            pulseSpeed: 0.03 + Math.random() * 0.04,
-                            pulseOffset: Math.random() * Math.PI,
-                            opacity: 0.25 + Math.random() * 0.5
-                        });
+                if (bossVariant === 0) {
+                    // Necromancer: Cyan/green soul wisps
+                    if (!room.necroSouls) {
+                        room.necroSouls = [];
+                        for (let i = 0; i < 25; i++) {
+                            room.necroSouls.push({
+                                x: 80 + Math.random() * 640,
+                                y: 80 + Math.random() * 440,
+                                vy: -(0.4 + Math.random() * 0.8),
+                                vx: (Math.random() - 0.5) * 0.2,
+                                size: 2 + Math.random() * 3,
+                                pulseSpeed: 0.03 + Math.random() * 0.04,
+                                pulseOffset: Math.random() * Math.PI,
+                                opacity: 0.25 + Math.random() * 0.5
+                            });
+                        }
                     }
-                }
-                for (const s of room.necroSouls) {
-                    s.y += s.vy;
-                    s.x += s.vx + Math.sin(Date.now() * 0.002 + s.pulseOffset) * 0.15;
-                    if (s.y < 80) {
-                        s.y = 520;
-                        s.x = 80 + Math.random() * 640;
+                    for (const s of room.necroSouls) {
+                        s.y += s.vy;
+                        s.x += s.vx + Math.sin(Date.now() * 0.002 + s.pulseOffset) * 0.15;
+                        if (s.y < 80) {
+                            s.y = 520;
+                            s.x = 80 + Math.random() * 640;
+                        }
+                    }
+                } else if (bossVariant === 1) {
+                    // Bone Colossus: Bone ash
+                    if (!room.boneAsh) {
+                        room.boneAsh = [];
+                        for (let i = 0; i < 25; i++) {
+                            room.boneAsh.push({
+                                x: 80 + Math.random() * 640,
+                                y: 80 + Math.random() * 440,
+                                vy: 0.6 + Math.random() * 0.6,
+                                size: 1.5 + Math.random() * 2,
+                                opacity: 0.3 + Math.random() * 0.5
+                            });
+                        }
+                    }
+                    for (const a of room.boneAsh) {
+                        a.y += a.vy;
+                        a.x += Math.sin(Date.now() * 0.003 + a.y) * 0.1;
+                        if (a.y > 520) {
+                            a.y = 80;
+                            a.x = 80 + Math.random() * 640;
+                        }
+                    }
+                } else {
+                    // Plague Doctor: Green miasma bubbles
+                    if (!room.miasmaBubbles) {
+                        room.miasmaBubbles = [];
+                        for (let i = 0; i < 20; i++) {
+                            room.miasmaBubbles.push({
+                                x: 80 + Math.random() * 640,
+                                y: 520,
+                                vy: -(0.5 + Math.random() * 0.8),
+                                size: 2 + Math.random() * 4,
+                                wobbleOffset: Math.random() * Math.PI * 2,
+                                opacity: 0.4 + Math.random() * 0.4
+                            });
+                        }
+                    }
+                    for (const b of room.miasmaBubbles) {
+                        b.y += b.vy;
+                        b.x += Math.sin(Date.now() * 0.01 + b.wobbleOffset) * 0.3;
+                        if (b.y < 80) {
+                            b.y = 520;
+                            b.x = 80 + Math.random() * 640;
+                        }
                     }
                 }
             } else if (bossIndex === 3) {
-                // Fire Demon: Lava embers
-                if (!room.lavaEmbers) {
-                    room.lavaEmbers = [];
-                    for (let i = 0; i < 30; i++) {
-                        room.lavaEmbers.push({
-                            x: 80 + Math.random() * 640,
-                            y: 80 + Math.random() * 440,
-                            vy: -(0.6 + Math.random() * 1.2),
-                            vx: (Math.random() - 0.5) * 0.4,
-                            size: 1.5 + Math.random() * 2,
-                            opacity: 0.35 + Math.random() * 0.55
-                        });
+                if (bossVariant === 0) {
+                    // Fire Demon: Lava embers
+                    if (!room.lavaEmbers) {
+                        room.lavaEmbers = [];
+                        for (let i = 0; i < 30; i++) {
+                            room.lavaEmbers.push({
+                                x: 80 + Math.random() * 640,
+                                y: 80 + Math.random() * 440,
+                                vy: -(0.6 + Math.random() * 1.2),
+                                vx: (Math.random() - 0.5) * 0.4,
+                                size: 1.5 + Math.random() * 2,
+                                opacity: 0.35 + Math.random() * 0.55
+                            });
+                        }
                     }
-                }
-                for (const e of room.lavaEmbers) {
-                    e.y += e.vy;
-                    e.x += e.vx;
-                    if (e.y < 80) {
-                        e.y = 520;
-                        e.x = 80 + Math.random() * 640;
+                    for (const e of room.lavaEmbers) {
+                        e.y += e.vy;
+                        e.x += e.vx;
+                        if (e.y < 80) {
+                            e.y = 520;
+                            e.x = 80 + Math.random() * 640;
+                        }
+                    }
+                } else if (bossVariant === 1) {
+                    // Infernal Drake: Ember sparks
+                    if (!room.emberSparks) {
+                        room.emberSparks = [];
+                        for (let i = 0; i < 30; i++) {
+                            room.emberSparks.push({
+                                x: 80 + Math.random() * 640,
+                                y: 80 + Math.random() * 440,
+                                vy: -(1.0 + Math.random() * 1.5),
+                                vx: (Math.random() - 0.5) * 0.3,
+                                size: 1 + Math.random() * 2,
+                                opacity: 0.4 + Math.random() * 0.5
+                            });
+                        }
+                    }
+                    for (const s of room.emberSparks) {
+                        s.y += s.vy;
+                        s.x += s.vx;
+                        if (s.y < 80) {
+                            s.y = 520;
+                            s.x = 80 + Math.random() * 640;
+                        }
+                    }
+                } else {
+                    // Magma Titan: Lava drops
+                    if (!room.lavaDrops) {
+                        room.lavaDrops = [];
+                        for (let i = 0; i < 20; i++) {
+                            room.lavaDrops.push({
+                                x: 80 + Math.random() * 640,
+                                y: 80 + Math.random() * 440,
+                                vy: -(0.3 + Math.random() * 0.5),
+                                size: 2.5 + Math.random() * 3,
+                                opacity: 0.3 + Math.random() * 0.4
+                            });
+                        }
+                    }
+                    for (const d of room.lavaDrops) {
+                        d.y += d.vy;
+                        if (d.y < 80) {
+                            d.y = 520;
+                            d.x = 80 + Math.random() * 640;
+                        }
                     }
                 }
             } else if (bossIndex === 4) {
-                // Void Eye: Cosmic stars
-                if (!room.voidStars) {
-                    room.voidStars = [];
-                    for (let i = 0; i < 40; i++) {
-                        room.voidStars.push({
-                            x: 80 + Math.random() * 640,
-                            y: 80 + Math.random() * 440,
-                            vx: (Math.random() - 0.5) * 0.15,
-                            vy: (Math.random() - 0.5) * 0.15,
-                            size: 1 + Math.random() * 2,
-                            color: Math.random() < 0.6 ? '#a855f7' : '#6366f1',
-                            opacity: 0.3 + Math.random() * 0.6
-                        });
+                if (bossVariant === 0) {
+                    // Void Eye: Cosmic stars
+                    if (!room.voidStars) {
+                        room.voidStars = [];
+                        for (let i = 0; i < 40; i++) {
+                            room.voidStars.push({
+                                x: 80 + Math.random() * 640,
+                                y: 80 + Math.random() * 440,
+                                vx: (Math.random() - 0.5) * 0.15,
+                                vy: (Math.random() - 0.5) * 0.15,
+                                size: 1 + Math.random() * 2,
+                                color: Math.random() < 0.6 ? '#a855f7' : '#6366f1',
+                                opacity: 0.3 + Math.random() * 0.6
+                            });
+                        }
                     }
-                }
-                for (const s of room.voidStars) {
-                    s.x += s.vx;
-                    s.y += s.vy;
-                    if (s.x < 70 || s.x > 730 || s.y < 70 || s.y > 530) {
-                        s.x = 80 + Math.random() * 640;
-                        s.y = 80 + Math.random() * 440;
+                    for (const s of room.voidStars) {
+                        s.x += s.vx;
+                        s.y += s.vy;
+                        if (s.x < 70 || s.x > 730 || s.y < 70 || s.y > 530) {
+                            s.x = 80 + Math.random() * 640;
+                            s.y = 80 + Math.random() * 440;
+                        }
+                    }
+                } else if (bossVariant === 1) {
+                    // Cosmic Horror: Stardust
+                    if (!room.stardust) {
+                        room.stardust = [];
+                        for (let i = 0; i < 30; i++) {
+                            room.stardust.push({
+                                x: 400 + (Math.random() - 0.5) * 400,
+                                y: 300 + (Math.random() - 0.5) * 300,
+                                angle: Math.random() * Math.PI * 2,
+                                radius: 50 + Math.random() * 200,
+                                rotSpeed: 0.005 + Math.random() * 0.01,
+                                size: 1 + Math.random() * 2,
+                                opacity: 0.4 + Math.random() * 0.5
+                            });
+                        }
+                    }
+                    for (const s of room.stardust) {
+                        s.angle += s.rotSpeed;
+                        s.x = 400 + Math.cos(s.angle) * s.radius;
+                        s.y = 300 + Math.sin(s.angle) * s.radius;
+                    }
+                } else {
+                    // Shadow Overlord: Shadow wisps
+                    if (!room.shadowWisps) {
+                        room.shadowWisps = [];
+                        for (let i = 0; i < 25; i++) {
+                            room.shadowWisps.push({
+                                x: 400 + (Math.random() - 0.5) * 400,
+                                y: 300 + (Math.random() - 0.5) * 300,
+                                angle: Math.random() * Math.PI * 2,
+                                radius: 40 + Math.random() * 180,
+                                speed: 0.01 + Math.random() * 0.015,
+                                size: 2 + Math.random() * 2.5,
+                                opacity: 0.3 + Math.random() * 0.4
+                            });
+                        }
+                    }
+                    for (const w of room.shadowWisps) {
+                        w.angle += w.speed;
+                        w.x = 400 + Math.cos(w.angle) * w.radius;
+                        w.y = 300 + Math.sin(w.angle) * w.radius;
                     }
                 }
             }
@@ -1382,211 +1614,492 @@ class Game {
             }
         } else if (room.type === ROOM_TYPES.BOSS) {
             const bossIndex = Math.min(this.level - 1, 4);
+            const bossVariant = room.bossVariant !== undefined ? room.bossVariant : 0;
+            
             if (bossIndex === 0) {
-                // Forest Golem floor: earthy dark green mossy floor
-                this.ctx.fillStyle = '#091c0e';
-                this.ctx.fillRect(64, 64, 672, 472);
-                
-                // Mossy stone brick boundaries
-                this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.04)';
-                this.ctx.lineWidth = 1;
-                for (let y = 64; y < 536; y += brickH) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(64, y);
-                    this.ctx.lineTo(736, y);
-                    this.ctx.stroke();
+                if (bossVariant === 0) {
+                    // Forest Golem floor: earthy dark green mossy floor
+                    this.ctx.fillStyle = '#091c0e';
+                    this.ctx.fillRect(64, 64, 672, 472);
                     
-                    const isEvenRow = Math.floor(y / brickH) % 2 === 0;
-                    const offset = isEvenRow ? 0 : (brickW / 2);
-                    for (let x = 64 + offset; x < 736; x += brickW) {
+                    // Mossy stone brick boundaries
+                    this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.04)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
                         this.ctx.beginPath();
-                        this.ctx.moveTo(x, y);
-                        this.ctx.lineTo(x, y + brickH);
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
                         this.ctx.stroke();
-                    }
-                }
-                
-                // Draw lush grass blades that character can walk through
-                const grassSeed = room.gridX * 29 + room.gridY * 41;
-                const grassRandom = (s) => {
-                    let val = Math.sin(s) * 12345;
-                    return val - Math.floor(val);
-                };
-                
-                this.ctx.save();
-                for (let i = 0; i < 45; i++) {
-                    const gx = 80 + grassRandom(grassSeed + i * 13) * 620;
-                    const gy = 80 + grassRandom(grassSeed + i * 19) * 420;
-                    
-                    const blades = 3 + Math.floor(grassRandom(grassSeed + i * 5) * 3);
-                    this.ctx.strokeStyle = i % 2 === 0 ? '#16a34a' : '#22c55e';
-                    this.ctx.lineWidth = 1.0 + grassRandom(grassSeed + i * 9) * 0.8;
-                    for (let b = 0; b < blades; b++) {
-                        const bh = 8 + grassRandom(grassSeed + i * 7 + b) * 8;
-                        const angle = (grassRandom(grassSeed + i * 11 + b) - 0.5) * 0.5;
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(gx, gy);
-                        this.ctx.quadraticCurveTo(gx - angle * 5, gy - bh * 0.6, gx - angle * 8, gy - bh);
-                        this.ctx.stroke();
+                        
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
                     }
                     
-                    // Faint shadow at the base
-                    this.ctx.fillStyle = '#051307';
-                    this.ctx.beginPath();
-                    this.ctx.arc(gx, gy, 1.8, 0, Math.PI * 2);
-                    this.ctx.fill();
+                    // Draw lush grass blades that character can walk through
+                    const grassSeed = room.gridX * 29 + room.gridY * 41;
+                    const grassRandom = (s) => {
+                        let val = Math.sin(s) * 12345;
+                        return val - Math.floor(val);
+                    };
+                    
+                    this.ctx.save();
+                    for (let i = 0; i < 45; i++) {
+                        const gx = 80 + grassRandom(grassSeed + i * 13) * 620;
+                        const gy = 80 + grassRandom(grassSeed + i * 19) * 420;
+                        
+                        const blades = 3 + Math.floor(grassRandom(grassSeed + i * 5) * 3);
+                        this.ctx.strokeStyle = i % 2 === 0 ? '#16a34a' : '#22c55e';
+                        this.ctx.lineWidth = 1.0 + grassRandom(grassSeed + i * 9) * 0.8;
+                        for (let b = 0; b < blades; b++) {
+                            const bh = 8 + grassRandom(grassSeed + i * 7 + b) * 8;
+                            const angle = (grassRandom(grassSeed + i * 11 + b) - 0.5) * 0.5;
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(gx, gy);
+                            this.ctx.quadraticCurveTo(gx - angle * 5, gy - bh * 0.6, gx - angle * 8, gy - bh);
+                            this.ctx.stroke();
+                        }
+                        
+                        // Faint shadow at the base
+                        this.ctx.fillStyle = '#051307';
+                        this.ctx.beginPath();
+                        this.ctx.arc(gx, gy, 1.8, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 1) {
+                    // Giant Spider floor: dark greenish black floor
+                    this.ctx.fillStyle = '#040804';
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    this.ctx.strokeStyle = 'rgba(34, 197, 94, 0.03)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
+                    }
+                    
+                    // Draw cobwebs on the floor
+                    this.ctx.save();
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                    this.ctx.lineWidth = 1.5;
+                    const drawFloorWeb = (cx, cy, r) => {
+                        this.ctx.beginPath();
+                        for (let a = 0; a < 8; a++) {
+                            const angle = (Math.PI / 4) * a;
+                            this.ctx.moveTo(cx, cy);
+                            this.ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+                        }
+                        this.ctx.stroke();
+                        // Connect rings
+                        for (let step = 1; step <= 3; step++) {
+                            this.ctx.beginPath();
+                            this.ctx.arc(cx, cy, (r / 3) * step, 0, Math.PI * 2);
+                            this.ctx.stroke();
+                        }
+                    };
+                    drawFloorWeb(200, 200, 60);
+                    drawFloorWeb(600, 380, 50);
+                    drawFloorWeb(550, 160, 40);
+                    this.ctx.restore();
+                } else {
+                    // Ancient Treant floor: earthy bark brown floor
+                    this.ctx.fillStyle = '#1c120c';
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    this.ctx.strokeStyle = 'rgba(133, 77, 14, 0.05)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
+                    }
+                    
+                    // Draw wooden rings/roots on the ground
+                    this.ctx.save();
+                    this.ctx.strokeStyle = 'rgba(69, 26, 3, 0.08)';
+                    this.ctx.lineWidth = 2.5;
+                    const drawFloorRoot = (rx, ry, radius) => {
+                        this.ctx.beginPath();
+                        this.ctx.arc(rx, ry, radius, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        this.ctx.beginPath();
+                        this.ctx.arc(rx, ry, radius * 0.75, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        this.ctx.beginPath();
+                        this.ctx.arc(rx, ry, radius * 0.5, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                    };
+                    drawFloorRoot(300, 320, 80);
+                    drawFloorRoot(500, 220, 60);
+                    this.ctx.restore();
                 }
-                this.ctx.restore();
-                
             } else if (bossIndex === 1) {
-                // Shadow Knight floor: midnight dark shadow blue
-                this.ctx.fillStyle = '#040510';
-                this.ctx.fillRect(64, 64, 672, 472);
-                
-                // Spectral brick boundaries
-                this.ctx.strokeStyle = 'rgba(99, 102, 241, 0.03)';
-                this.ctx.lineWidth = 1;
-                for (let y = 64; y < 536; y += brickH) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(64, y);
-                    this.ctx.lineTo(736, y);
-                    this.ctx.stroke();
+                if (bossVariant === 0) {
+                    // Shadow Knight floor: midnight dark shadow blue
+                    this.ctx.fillStyle = '#040510';
+                    this.ctx.fillRect(64, 64, 672, 472);
                     
-                    const isEvenRow = Math.floor(y / brickH) % 2 === 0;
-                    const offset = isEvenRow ? 0 : (brickW / 2);
-                    for (let x = 64 + offset; x < 736; x += brickW) {
+                    // Spectral brick boundaries
+                    this.ctx.strokeStyle = 'rgba(99, 102, 241, 0.03)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
                         this.ctx.beginPath();
-                        this.ctx.moveTo(x, y);
-                        this.ctx.lineTo(x, y + brickH);
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
                         this.ctx.stroke();
+                        
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
+                    }
+                } else if (bossVariant === 1) {
+                    // Phantom Witch floor: deep purple void tiles
+                    this.ctx.fillStyle = '#0c0214';
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    this.ctx.strokeStyle = 'rgba(168, 85, 247, 0.04)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
+                    }
+                    // Glowing witch glyphs
+                    this.ctx.save();
+                    this.ctx.strokeStyle = 'rgba(168, 85, 247, 0.06)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.arc(400, 300, 90, 0, Math.PI*2);
+                    this.ctx.stroke();
+                    this.ctx.beginPath();
+                    this.ctx.arc(400, 300, 60, 0, Math.PI*2);
+                    this.ctx.stroke();
+                    this.ctx.restore();
+                } else {
+                    // Dark Gargoyle floor: heavy grey stone
+                    this.ctx.fillStyle = '#18181a';
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    this.ctx.strokeStyle = 'rgba(75, 85, 99, 0.05)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
                     }
                 }
             } else if (bossIndex === 2) {
-                // Necromancer floor: tombstone gray
-                this.ctx.fillStyle = '#101012';
-                this.ctx.fillRect(64, 64, 672, 472);
-                
-                this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.05)';
-                this.ctx.lineWidth = 1;
-                for (let y = 64; y < 536; y += brickH) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(64, y);
-                    this.ctx.lineTo(736, y);
-                    this.ctx.stroke();
+                if (bossVariant === 0) {
+                    // Necromancer floor: tombstone gray
+                    this.ctx.fillStyle = '#101012';
+                    this.ctx.fillRect(64, 64, 672, 472);
                     
-                    const isEvenRow = Math.floor(y / brickH) % 2 === 0;
-                    const offset = isEvenRow ? 0 : (brickW / 2);
-                    for (let x = 64 + offset; x < 736; x += brickW) {
+                    this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.05)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
                         this.ctx.beginPath();
-                        this.ctx.moveTo(x, y);
-                        this.ctx.lineTo(x, y + brickH);
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                        
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
+                    }
+                    
+                    // Faint glowing runes
+                    const runeSeed = room.gridX * 17 + room.gridY * 43;
+                    const runeRandom = (s) => {
+                        let val = Math.sin(s) * 9876;
+                        return val - Math.floor(val);
+                    };
+                    
+                    this.ctx.save();
+                    this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.06)';
+                    this.ctx.shadowBlur = 4;
+                    this.ctx.shadowColor = '#10b981';
+                    this.ctx.lineWidth = 1.5;
+                    for (let i = 0; i < 6; i++) {
+                        const cx = 150 + runeRandom(runeSeed + i * 3) * 500;
+                        const cy = 150 + runeRandom(runeSeed + i * 7) * 300;
+                        this.ctx.beginPath();
+                        this.ctx.arc(cx, cy, 15 + runeRandom(runeSeed + i * 11) * 20, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        
+                        // Simple runic lines crossing the circle
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(cx - 10, cy);
+                        this.ctx.lineTo(cx + 10, cy);
+                        this.ctx.moveTo(cx, cy - 10);
+                        this.ctx.lineTo(cx, cy + 10);
                         this.ctx.stroke();
                     }
-                }
-                
-                // Faint glowing runes
-                const runeSeed = room.gridX * 17 + room.gridY * 43;
-                const runeRandom = (s) => {
-                    let val = Math.sin(s) * 9876;
-                    return val - Math.floor(val);
-                };
-                
-                this.ctx.save();
-                this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.06)';
-                this.ctx.shadowBlur = 4;
-                this.ctx.shadowColor = '#10b981';
-                this.ctx.lineWidth = 1.5;
-                for (let i = 0; i < 6; i++) {
-                    const cx = 150 + runeRandom(runeSeed + i * 3) * 500;
-                    const cy = 150 + runeRandom(runeSeed + i * 7) * 300;
-                    this.ctx.beginPath();
-                    this.ctx.arc(cx, cy, 15 + runeRandom(runeSeed + i * 11) * 20, 0, Math.PI * 2);
-                    this.ctx.stroke();
+                    this.ctx.restore();
+                } else if (bossVariant === 1) {
+                    // Bone Colossus floor: bone-white cracked floor
+                    this.ctx.fillStyle = '#262422';
+                    this.ctx.fillRect(64, 64, 672, 472);
                     
-                    // Simple runic lines crossing the circle
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(cx - 10, cy);
-                    this.ctx.lineTo(cx + 10, cy);
-                    this.ctx.moveTo(cx, cy - 10);
-                    this.ctx.lineTo(cx, cy + 10);
-                    this.ctx.stroke();
-                }
-                this.ctx.restore();
-            } else if (bossIndex === 3) {
-                // Fire Demon floor: obsidian tiles with flowing lava cracks
-                this.ctx.fillStyle = '#0a0402';
-                this.ctx.fillRect(64, 64, 672, 472);
-                
-                const pulse = Math.sin(Date.now() * 0.002) * 0.15 + 0.85;
-                const lavaColor = `rgba(${220 + Math.floor(pulse * 35)}, ${60 + Math.floor(pulse * 80)}, 20, 0.35)`;
-                
-                this.ctx.save();
-                this.ctx.shadowBlur = 8;
-                this.ctx.shadowColor = '#ea580c';
-                this.ctx.strokeStyle = lavaColor;
-                this.ctx.lineWidth = 2.5;
-                
-                const lavaSeed = room.gridX * 31 + room.gridY * 47;
-                const lavaRandom = (s) => {
-                    let val = Math.sin(s) * 14725;
-                    return val - Math.floor(val);
-                };
-                
-                for (let i = 0; i < 8; i++) {
-                    const lx = 100 + lavaRandom(lavaSeed + i * 7) * 580;
-                    const ly = 100 + lavaRandom(lavaSeed + i * 9) * 380;
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(lx, ly);
-                    const lx2 = lx + (lavaRandom(lavaSeed + i * 11) - 0.5) * 80;
-                    const ly2 = ly + (lavaRandom(lavaSeed + i * 13) - 0.5) * 80;
-                    this.ctx.lineTo(lx2, ly2);
-                    const lx3 = lx2 + (lavaRandom(lavaSeed + i * 15) - 0.5) * 80;
-                    const ly3 = ly2 + (lavaRandom(lavaSeed + i * 17) - 0.5) * 80;
-                    this.ctx.lineTo(lx3, ly3);
-                    this.ctx.stroke();
-                }
-                this.ctx.restore();
-                
-                // Dark red brick boundaries
-                this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.03)';
-                this.ctx.lineWidth = 1;
-                for (let y = 64; y < 536; y += brickH) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(64, y);
-                    this.ctx.lineTo(736, y);
-                    this.ctx.stroke();
-                    
-                    const isEvenRow = Math.floor(y / brickH) % 2 === 0;
-                    const offset = isEvenRow ? 0 : (brickW / 2);
-                    for (let x = 64 + offset; x < 736; x += brickW) {
+                    this.ctx.strokeStyle = 'rgba(214, 211, 209, 0.04)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
                         this.ctx.beginPath();
-                        this.ctx.moveTo(x, y);
-                        this.ctx.lineTo(x, y + brickH);
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
                         this.ctx.stroke();
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
+                    }
+                    
+                    // Draw bone-cracks
+                    this.ctx.save();
+                    this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+                    this.ctx.lineWidth = 1.2;
+                    for (let i = 0; i < 5; i++) {
+                        const cx = 100 + i * 120 + Math.random() * 50;
+                        const cy = 100 + i * 80 + Math.random() * 50;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(cx, cy);
+                        this.ctx.lineTo(cx + 25, cy + 20);
+                        this.ctx.lineTo(cx + 40, cy + 10);
+                        this.ctx.stroke();
+                    }
+                    this.ctx.restore();
+                } else {
+                    // Plague Doctor floor: sickly yellow-green
+                    this.ctx.fillStyle = '#121a08';
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    this.ctx.strokeStyle = 'rgba(132, 204, 22, 0.04)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
+                    }
+                }
+            } else if (bossIndex === 3) {
+                if (bossVariant === 0) {
+                    // Fire Demon floor: obsidian tiles with flowing lava cracks
+                    this.ctx.fillStyle = '#0a0402';
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    const pulse = Math.sin(Date.now() * 0.002) * 0.15 + 0.85;
+                    const lavaColor = `rgba(${220 + Math.floor(pulse * 35)}, ${60 + Math.floor(pulse * 80)}, 20, 0.35)`;
+                    
+                    this.ctx.save();
+                    this.ctx.shadowBlur = 8;
+                    this.ctx.shadowColor = '#ea580c';
+                    this.ctx.strokeStyle = lavaColor;
+                    this.ctx.lineWidth = 2.5;
+                    
+                    const lavaSeed = room.gridX * 31 + room.gridY * 47;
+                    const lavaRandom = (s) => {
+                        let val = Math.sin(s) * 14725;
+                        return val - Math.floor(val);
+                    };
+                    
+                    for (let i = 0; i < 8; i++) {
+                        const lx = 100 + lavaRandom(lavaSeed + i * 7) * 580;
+                        const ly = 100 + lavaRandom(lavaSeed + i * 9) * 380;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(lx, ly);
+                        const lx2 = lx + (lavaRandom(lavaSeed + i * 11) - 0.5) * 80;
+                        const ly2 = ly + (lavaRandom(lavaSeed + i * 13) - 0.5) * 80;
+                        this.ctx.lineTo(lx2, ly2);
+                        const lx3 = lx2 + (lavaRandom(lavaSeed + i * 15) - 0.5) * 80;
+                        const ly3 = ly2 + (lavaRandom(lavaSeed + i * 17) - 0.5) * 80;
+                        this.ctx.lineTo(lx3, ly3);
+                        this.ctx.stroke();
+                    }
+                    this.ctx.restore();
+                    
+                    // Dark red brick boundaries
+                    this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.03)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                        
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
+                    }
+                } else if (bossVariant === 1) {
+                    // Infernal Drake floor: scorched orange-black
+                    this.ctx.fillStyle = '#140902';
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    this.ctx.strokeStyle = 'rgba(249, 115, 22, 0.03)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
+                    }
+                } else {
+                    // Magma Titan floor: cracked lava tiles glowing
+                    this.ctx.fillStyle = '#1f0b02';
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    const pulse = Math.sin(Date.now() * 0.0035) * 0.2 + 0.8;
+                    this.ctx.fillStyle = `rgba(239, 68, 68, ${pulse * 0.08})`;
+                    // glowing grid patches
+                    for (let i = 0; i < 4; i++) {
+                        this.ctx.fillRect(150 + i*130, 150 + i*60, 100, 100);
+                    }
+                    
+                    this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.04)';
+                    this.ctx.lineWidth = 1;
+                    for (let y = 64; y < 536; y += brickH) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                        const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                        const offset = isEvenRow ? 0 : (brickW / 2);
+                        for (let x = 64 + offset; x < 736; x += brickW) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x, y);
+                            this.ctx.lineTo(x, y + brickH);
+                            this.ctx.stroke();
+                        }
                     }
                 }
             } else if (bossIndex === 4) {
-                // Void Eye floor: cosmic starry nebula void
-                const voidGrad = this.ctx.createRadialGradient(400, 300, 30, 400, 300, 380);
-                voidGrad.addColorStop(0, '#04010b');
-                voidGrad.addColorStop(0.5, '#010004');
-                voidGrad.addColorStop(1, '#000000');
-                this.ctx.fillStyle = voidGrad;
-                this.ctx.fillRect(64, 64, 672, 472);
-                
-                // Draw a faint nebular grid lines
-                this.ctx.strokeStyle = 'rgba(168, 85, 247, 0.015)';
-                this.ctx.lineWidth = 0.5;
-                for (let y = 64; y < 536; y += brickH) {
+                if (bossVariant === 0) {
+                    // Void Eye floor: cosmic starry nebula void
+                    const voidGrad = this.ctx.createRadialGradient(400, 300, 30, 400, 300, 380);
+                    voidGrad.addColorStop(0, '#04010b');
+                    voidGrad.addColorStop(0.5, '#010004');
+                    voidGrad.addColorStop(1, '#000000');
+                    this.ctx.fillStyle = voidGrad;
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    // Draw a faint nebular grid lines
+                    this.ctx.strokeStyle = 'rgba(168, 85, 247, 0.015)';
+                    this.ctx.lineWidth = 0.5;
+                    for (let y = 64; y < 536; y += brickH) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(64, y);
+                        this.ctx.lineTo(736, y);
+                        this.ctx.stroke();
+                    }
+                    for (let x = 64; x < 736; x += brickW) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, 64);
+                        this.ctx.lineTo(x, 536);
+                        this.ctx.stroke();
+                    }
+                } else if (bossVariant === 1) {
+                    // Cosmic Horror floor: deep space + tentacle shadows
+                    const voidGrad = this.ctx.createRadialGradient(400, 300, 30, 400, 300, 380);
+                    voidGrad.addColorStop(0, '#02030f');
+                    voidGrad.addColorStop(1, '#000000');
+                    this.ctx.fillStyle = voidGrad;
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    // Shadow patches
+                    this.ctx.fillStyle = 'rgba(15, 23, 42, 0.08)';
                     this.ctx.beginPath();
-                    this.ctx.moveTo(64, y);
-                    this.ctx.lineTo(736, y);
-                    this.ctx.stroke();
-                }
-                for (let x = 64; x < 736; x += brickW) {
+                    this.ctx.arc(300, 200, 100, 0, Math.PI*2);
+                    this.ctx.arc(500, 400, 80, 0, Math.PI*2);
+                    this.ctx.fill();
+                } else {
+                    // Shadow Overlord floor: absolute void black
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.fillRect(64, 64, 672, 472);
+                    
+                    // Shadow ripples
+                    this.ctx.strokeStyle = 'rgba(30, 27, 75, 0.2)';
+                    this.ctx.lineWidth = 2;
+                    const rip = Math.sin(Date.now() * 0.002) * 20;
                     this.ctx.beginPath();
-                    this.ctx.moveTo(x, 64);
-                    this.ctx.lineTo(x, 536);
+                    this.ctx.arc(400, 300, 120 + rip, 0, Math.PI*2);
                     this.ctx.stroke();
                 }
             }
@@ -2004,77 +2517,189 @@ class Game {
         // Draw Boss Room Custom Particles
         if (room.type === ROOM_TYPES.BOSS) {
             const bossIndex = Math.min(this.level - 1, 4);
-            if (bossIndex === 0 && room.butterflies) {
-                for (const b of room.butterflies) {
+            const bossVariant = room.bossVariant !== undefined ? room.bossVariant : 0;
+            
+            if (bossIndex === 0) {
+                if (bossVariant === 0 && room.butterflies) {
+                    for (const b of room.butterflies) {
+                        this.ctx.save();
+                        this.ctx.translate(b.x, b.y);
+                        const flap = Math.sin(Date.now() * 0.015 + b.flapOffset);
+                        const wingWidth = b.size * Math.max(0.15, Math.abs(flap));
+                        this.ctx.fillStyle = b.color;
+                        // Left wing
+                        this.ctx.beginPath();
+                        this.ctx.ellipse(-b.size * 0.5, -b.size * 0.2, wingWidth, b.size * 0.7, -0.25, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        // Right wing
+                        this.ctx.beginPath();
+                        this.ctx.ellipse(b.size * 0.5, -b.size * 0.2, wingWidth, b.size * 0.7, 0.25, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        // Body
+                        this.ctx.fillStyle = '#1c1917';
+                        this.ctx.fillRect(-0.8, -b.size * 0.7, 1.6, b.size * 1.4);
+                        this.ctx.restore();
+                    }
+                } else if (bossVariant === 1 && room.sporePuffs) {
                     this.ctx.save();
-                    this.ctx.translate(b.x, b.y);
-                    
-                    const flap = Math.sin(Date.now() * 0.015 + b.flapOffset);
-                    const wingWidth = b.size * Math.max(0.15, Math.abs(flap));
-                    
-                    this.ctx.fillStyle = b.color;
-                    
-                    // Left wing
-                    this.ctx.beginPath();
-                    this.ctx.ellipse(-b.size * 0.5, -b.size * 0.2, wingWidth, b.size * 0.7, -0.25, 0, Math.PI * 2);
-                    this.ctx.fill();
-                    
-                    // Right wing
-                    this.ctx.beginPath();
-                    this.ctx.ellipse(b.size * 0.5, -b.size * 0.2, wingWidth, b.size * 0.7, 0.25, 0, Math.PI * 2);
-                    this.ctx.fill();
-                    
-                    // Body
-                    this.ctx.fillStyle = '#1c1917';
-                    this.ctx.fillRect(-0.8, -b.size * 0.7, 1.6, b.size * 1.4);
-                    
+                    for (const p of room.sporePuffs) {
+                        this.ctx.fillStyle = `rgba(74, 222, 128, ${p.opacity})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 2 && room.swirlingLeaves) {
+                    this.ctx.save();
+                    for (const l of room.swirlingLeaves) {
+                        this.ctx.fillStyle = l.color;
+                        this.ctx.save();
+                        this.ctx.translate(l.x, l.y);
+                        this.ctx.rotate(l.angle);
+                        // Draw simple leaf shape
+                        this.ctx.beginPath();
+                        this.ctx.ellipse(0, 0, l.size, l.size * 0.5, 0, 0, Math.PI*2);
+                        this.ctx.fill();
+                        this.ctx.restore();
+                    }
                     this.ctx.restore();
                 }
-            } else if (bossIndex === 1 && room.shadowFog) {
-                this.ctx.save();
-                for (const f of room.shadowFog) {
-                    this.ctx.fillStyle = `rgba(18, 12, 38, ${f.opacity})`;
-                    this.ctx.beginPath();
-                    this.ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
-                    this.ctx.fill();
+            } else if (bossIndex === 1) {
+                if (bossVariant === 0 && room.shadowFog) {
+                    this.ctx.save();
+                    for (const f of room.shadowFog) {
+                        this.ctx.fillStyle = `rgba(18, 12, 38, ${f.opacity})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 1 && room.arcaneGlyphs) {
+                    this.ctx.save();
+                    this.ctx.font = '10px Arial';
+                    for (const g of room.arcaneGlyphs) {
+                        this.ctx.fillStyle = `rgba(168, 85, 247, ${g.opacity})`;
+                        this.ctx.fillText(g.text, g.x, g.y);
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 2 && room.stoneFog) {
+                    this.ctx.save();
+                    for (const f of room.stoneFog) {
+                        this.ctx.fillStyle = `rgba(82, 82, 91, ${f.opacity})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
                 }
-                this.ctx.restore();
-            } else if (bossIndex === 2 && room.necroSouls) {
-                this.ctx.save();
-                this.ctx.shadowBlur = 6;
-                this.ctx.shadowColor = '#10b981';
-                for (const s of room.necroSouls) {
-                    const alpha = s.opacity * (0.6 + Math.sin(Date.now() * s.pulseSpeed + s.pulseOffset) * 0.4);
-                    this.ctx.fillStyle = `rgba(16, 185, 129, ${alpha})`;
-                    this.ctx.beginPath();
-                    this.ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-                    this.ctx.fill();
+            } else if (bossIndex === 2) {
+                if (bossVariant === 0 && room.necroSouls) {
+                    this.ctx.save();
+                    this.ctx.shadowBlur = 6;
+                    this.ctx.shadowColor = '#10b981';
+                    for (const s of room.necroSouls) {
+                        const alpha = s.opacity * (0.6 + Math.sin(Date.now() * s.pulseSpeed + s.pulseOffset) * 0.4);
+                        this.ctx.fillStyle = `rgba(16, 185, 129, ${alpha})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 1 && room.boneAsh) {
+                    this.ctx.save();
+                    for (const a of room.boneAsh) {
+                        this.ctx.fillStyle = `rgba(229, 229, 229, ${a.opacity})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(a.x, a.y, a.size, 0, Math.PI*2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 2 && room.miasmaBubbles) {
+                    this.ctx.save();
+                    for (const b of room.miasmaBubbles) {
+                        this.ctx.strokeStyle = `rgba(132, 204, 22, ${b.opacity})`;
+                        this.ctx.fillStyle = `rgba(132, 204, 22, ${b.opacity * 0.3})`;
+                        this.ctx.lineWidth = 1;
+                        this.ctx.beginPath();
+                        this.ctx.arc(b.x, b.y, b.size, 0, Math.PI*2);
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                    }
+                    this.ctx.restore();
                 }
-                this.ctx.restore();
-            } else if (bossIndex === 3 && room.lavaEmbers) {
-                this.ctx.save();
-                this.ctx.shadowBlur = 8;
-                this.ctx.shadowColor = '#f97316';
-                for (const e of room.lavaEmbers) {
-                    const heatColor = Math.random() < 0.4 ? '#facc15' : '#f97316';
-                    this.ctx.fillStyle = heatColor;
-                    this.ctx.globalAlpha = e.opacity;
-                    this.ctx.fillRect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
+            } else if (bossIndex === 3) {
+                if (bossVariant === 0 && room.lavaEmbers) {
+                    this.ctx.save();
+                    this.ctx.shadowBlur = 8;
+                    this.ctx.shadowColor = '#f97316';
+                    for (const e of room.lavaEmbers) {
+                        const heatColor = Math.random() < 0.4 ? '#facc15' : '#f97316';
+                        this.ctx.fillStyle = heatColor;
+                        this.ctx.globalAlpha = e.opacity;
+                        this.ctx.fillRect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 1 && room.emberSparks) {
+                    this.ctx.save();
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.shadowColor = '#ea580c';
+                    for (const s of room.emberSparks) {
+                        this.ctx.fillStyle = '#f97316';
+                        this.ctx.globalAlpha = s.opacity;
+                        this.ctx.fillRect(s.x, s.y, s.size, s.size * 2);
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 2 && room.lavaDrops) {
+                    this.ctx.save();
+                    this.ctx.shadowBlur = 6;
+                    this.ctx.shadowColor = '#ef4444';
+                    for (const d of room.lavaDrops) {
+                        this.ctx.fillStyle = `rgba(239, 68, 68, ${d.opacity})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(d.x, d.y, d.size, 0, Math.PI*2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
                 }
-                this.ctx.restore();
-            } else if (bossIndex === 4 && room.voidStars) {
-                this.ctx.save();
-                this.ctx.shadowBlur = 4;
-                this.ctx.shadowColor = '#c084fc';
-                for (const s of room.voidStars) {
-                    const flicker = s.opacity * (0.7 + Math.sin(Date.now() * 0.005 + s.x) * 0.3);
-                    this.ctx.fillStyle = s.color;
-                    this.ctx.globalAlpha = flicker;
-                    this.ctx.beginPath();
-                    this.ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-                    this.ctx.fill();
+            } else if (bossIndex === 4) {
+                if (bossVariant === 0 && room.voidStars) {
+                    this.ctx.save();
+                    this.ctx.shadowBlur = 4;
+                    this.ctx.shadowColor = '#c084fc';
+                    for (const s of room.voidStars) {
+                        const flicker = s.opacity * (0.7 + Math.sin(Date.now() * 0.005 + s.x) * 0.3);
+                        this.ctx.fillStyle = s.color;
+                        this.ctx.globalAlpha = flicker;
+                        this.ctx.beginPath();
+                        this.ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 1 && room.stardust) {
+                    this.ctx.save();
+                    this.ctx.shadowBlur = 8;
+                    this.ctx.shadowColor = '#38bdf8';
+                    for (const s of room.stardust) {
+                        this.ctx.fillStyle = '#e0f2fe';
+                        this.ctx.globalAlpha = s.opacity;
+                        this.ctx.beginPath();
+                        this.ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
+                } else if (bossVariant === 2 && room.shadowWisps) {
+                    this.ctx.save();
+                    this.ctx.shadowBlur = 6;
+                    this.ctx.shadowColor = '#4f46e5';
+                    for (const w of room.shadowWisps) {
+                        this.ctx.fillStyle = '#1e1b4b';
+                        this.ctx.globalAlpha = w.opacity;
+                        this.ctx.beginPath();
+                        this.ctx.arc(w.x, w.y, w.size, 0, Math.PI*2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
                 }
-                this.ctx.restore();
             }
         }
 
