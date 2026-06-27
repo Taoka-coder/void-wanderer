@@ -187,11 +187,23 @@
         <!-- Boss Dialogue Overlay -->
         <div id="boss-dialogue-overlay" class="overlay hidden">
             <div class="overlay-card glass-panel boss-dialogue-card">
-                <div id="boss-dialogue-avatar" class="boss-dialogue-avatar">👹</div>
-                <h2 id="boss-dialogue-name" class="boss-dialogue-name">THE GOLEM</h2>
+                <h3 class="boss-dialogue-title">CONFRONTATION</h3>
                 <div class="dialogue-chat-box">
-                    <p id="boss-dialogue-text" class="boss-dialogue-text"></p>
-                    <p id="player-dialogue-text" class="player-dialogue-text"></p>
+                    <div id="dialogue-row" class="dialogue-row speaker-boss">
+                        <!-- Left Portrait (Boss) -->
+                        <div id="dialogue-left-avatar" class="dialogue-avatar boss-avatar">🗿</div>
+                        
+                        <!-- Dialogue Text Area -->
+                        <div class="dialogue-middle">
+                            <div id="dialogue-speaker-name" class="dialogue-speaker-name">THE GOLEM</div>
+                            <div class="dialogue-bubble">
+                                <p id="dialogue-text" class="dialogue-text"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Portrait (Player) -->
+                        <div id="dialogue-right-avatar" class="dialogue-avatar player-avatar hidden">👤</div>
+                    </div>
                 </div>
                 <div class="boss-dialogue-actions">
                     <button id="btn-boss-dialogue-next" class="btn btn-primary glow-effect">CONTINUE (Space)</button>
@@ -349,6 +361,6 @@
         </div>
     </div>
     <!-- Load game engine scripts -->
-    <script type="module" src="src/game.js?v=26"></script>
+    <script type="module" src="src/game.js?v=27"></script>
 </body>
 </html>
