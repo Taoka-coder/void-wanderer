@@ -807,8 +807,15 @@ export class Projectile {
         this.vx = options.vx;
         this.vy = options.vy;
         this.damage = options.damage;
-        this.radius = options.type === 'magic' ? 12 : (options.type === 'arrow' ? 4 : (options.type === 'webball' ? 10 : (options.type === 'homing_orb' ? 8 : 6)));
-        this.type = options.type; // 'arrow', 'magic', 'bullet', 'webball', 'homing_orb'
+        this.radius = options.type === 'magic' ? 12 : 
+                      (options.type === 'arrow' ? 4 : 
+                      (options.type === 'webball' ? 10 : 
+                      (options.type === 'homing_orb' ? 8 : 
+                      (options.type === 'fireball' ? 7 : 
+                      (options.type === 'wood_shard' ? 4 : 
+                      (options.type === 'bone_shard' ? 4 : 
+                      (options.type === 'shadow_bolt' ? 6 : 6)))))));
+        this.type = options.type; // 'arrow', 'magic', 'bullet', 'webball', 'homing_orb', 'fireball', 'wood_shard', 'bone_shard', 'shadow_bolt'
         this.owner = options.owner; // 'player', 'enemy'
         this.range = options.range;
         this.distanceTraveled = 0;
@@ -1078,6 +1085,102 @@ export class Projectile {
              ctx.beginPath();
              ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI*2);
              ctx.stroke();
+        } else if (this.type === 'wood_shard') {
+             // Wooden splinter pointy shape
+             ctx.translate(this.x, this.y);
+             ctx.rotate(this.angle);
+             ctx.fillStyle = '#854d0e';
+             ctx.strokeStyle = '#451a03';
+             ctx.lineWidth = 1;
+             ctx.beginPath();
+             ctx.moveTo(-8, 0);
+             ctx.lineTo(-4, -3);
+             ctx.lineTo(8, 0);
+             ctx.lineTo(-4, 3);
+             ctx.closePath();
+             ctx.fill();
+             ctx.stroke();
+        } else if (this.type === 'bone_shard') {
+             // Bone-white jagged splinter
+             ctx.translate(this.x, this.y);
+             ctx.rotate(this.angle);
+             ctx.fillStyle = '#f1f5f9';
+             ctx.strokeStyle = '#94a3b8';
+             ctx.lineWidth = 1;
+             ctx.beginPath();
+             ctx.moveTo(-6, -2);
+             ctx.lineTo(6, 0);
+             ctx.lineTo(-6, 2);
+             ctx.lineTo(-2, 0);
+             ctx.closePath();
+             ctx.fill();
+             ctx.stroke();
+        } else if (this.type === 'fireball') {
+             // Flaming comet/fireball projectile
+             ctx.shadowBlur = 12;
+             ctx.shadowColor = '#ef4444';
+             ctx.fillStyle = '#f97316';
+             ctx.strokeStyle = '#b91c1c';
+             ctx.lineWidth = 1.5;
+             ctx.beginPath();
+             ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+             ctx.fill();
+             ctx.stroke();
+
+             // Flame tail pointing backwards
+             ctx.save();
+             ctx.translate(this.x, this.y);
+             ctx.rotate(this.angle + Math.PI); // rotate opposite to velocity
+             const grad = ctx.createLinearGradient(0, 0, 14, 0);
+             grad.addColorStop(0, '#f97316');
+             grad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+             ctx.fillStyle = grad;
+             ctx.beginPath();
+             ctx.moveTo(0, -this.radius * 0.7);
+             ctx.quadraticCurveTo(8, -this.radius * 0.4, 14, 0);
+             ctx.quadraticCurveTo(8, this.radius * 0.4, 0, this.radius * 0.7);
+             ctx.closePath();
+             ctx.fill();
+             ctx.restore();
+
+             // Inner core highlight
+             ctx.fillStyle = '#fef08a';
+             ctx.beginPath();
+             ctx.arc(this.x - this.vx * 0.5, this.y - this.vy * 0.5, this.radius * 0.5, 0, Math.PI*2);
+             ctx.fill();
+        } else if (this.type === 'shadow_bolt') {
+             // Dark energy shadow bolt
+             ctx.shadowBlur = 12;
+             ctx.shadowColor = '#a855f7';
+             ctx.fillStyle = '#1e1b4b';
+             ctx.strokeStyle = '#c084fc';
+             ctx.lineWidth = 1.5;
+             ctx.beginPath();
+             ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+             ctx.fill();
+             ctx.stroke();
+
+             // Purple wispy tail pointing backwards
+             ctx.save();
+             ctx.translate(this.x, this.y);
+             ctx.rotate(this.angle + Math.PI);
+             const grad = ctx.createLinearGradient(0, 0, 12, 0);
+             grad.addColorStop(0, '#c084fc');
+             grad.addColorStop(1, 'rgba(168, 85, 247, 0)');
+             ctx.fillStyle = grad;
+             ctx.beginPath();
+             ctx.moveTo(0, -this.radius * 0.6);
+             ctx.quadraticCurveTo(6, -this.radius * 0.3, 12, 0);
+             ctx.quadraticCurveTo(6, this.radius * 0.3, 0, this.radius * 0.6);
+             ctx.closePath();
+             ctx.fill();
+             ctx.restore();
+
+             // Core highlight
+             ctx.fillStyle = '#faf5ff';
+             ctx.beginPath();
+             ctx.arc(this.x - this.vx * 0.3, this.y - this.vy * 0.3, this.radius * 0.4, 0, Math.PI*2);
+             ctx.fill();
         }
         ctx.restore();
     }
@@ -1089,14 +1192,14 @@ export class Enemy {
         this.y = y;
         this.type = type;
         
-        // Base type stats
+        // Base stats mapping for the 15 level-specific mobs + original mobs
         if (type === 'chaser') {
             this.radius = 16;
             this.maxHealth = 8 * levelMultiplier;
             this.speed = 1.6 + Math.random() * 0.4;
             this.damage = 0.5;
             this.color = '#ef4444';
-            this.icon = '💀'; // Skeleton representation
+            this.icon = '💀';
         } else if (type === 'shooter') {
             this.radius = 15;
             this.maxHealth = 6 * levelMultiplier;
@@ -1104,14 +1207,14 @@ export class Enemy {
             this.damage = 0.5;
             this.shootCooldown = 60 + Math.random() * 60;
             this.color = '#a855f7';
-            this.icon = '🦇'; // Gargoyle representation
+            this.icon = '🦇';
         } else if (type === 'swarmer') {
             this.radius = 12;
             this.maxHealth = 4 * levelMultiplier;
             this.speed = 2.4;
             this.damage = 0.5;
             this.color = '#22c55e';
-            this.icon = '🦠'; // Slime representation
+            this.icon = '🦠';
         } else if (type === 'mini_swarmer') {
             this.radius = 7;
             this.maxHealth = 2 * levelMultiplier;
@@ -1120,16 +1223,167 @@ export class Enemy {
             this.color = '#4ade80';
             this.icon = '🟢';
         }
-
+        // LEVEL 1: FOREST
+        else if (type === 'forest_swarmer') {
+            this.radius = 14;
+            this.maxHealth = 7 * levelMultiplier;
+            this.speed = 1.8;
+            this.damage = 0.5;
+            this.color = '#22c55e';
+            this.icon = '🦠';
+        } else if (type === 'forest_mini_swarmer') {
+            this.radius = 8;
+            this.maxHealth = 3 * levelMultiplier;
+            this.speed = 2.2;
+            this.damage = 0.25;
+            this.color = '#4ade80';
+            this.icon = '🟢';
+        } else if (type === 'forest_shooter') {
+            this.radius = 15;
+            this.maxHealth = 8 * levelMultiplier;
+            this.speed = 1.1;
+            this.damage = 0.5;
+            this.shootCooldown = 60 + Math.random() * 50;
+            this.color = '#16a34a';
+            this.icon = '🌱';
+        } else if (type === 'forest_sprout') {
+            this.radius = 18;
+            this.maxHealth = 15 * levelMultiplier;
+            this.speed = 0.5;
+            this.damage = 0.5;
+            this.shootCooldown = 90 + Math.random() * 40;
+            this.color = '#854d0e';
+            this.icon = '🌹';
+        }
+        // LEVEL 2: SHADOW
+        else if (type === 'shadow_swarmer') {
+            this.radius = 14;
+            this.maxHealth = 8 * levelMultiplier;
+            this.speed = 1.4;
+            this.damage = 0.5;
+            this.color = '#6b21a8';
+            this.icon = '👻';
+        } else if (type === 'shadow_shooter') {
+            this.radius = 15;
+            this.maxHealth = 8 * levelMultiplier;
+            this.speed = 1.2;
+            this.damage = 0.5;
+            this.shootCooldown = 70 + Math.random() * 50;
+            this.color = '#3b0764';
+            this.icon = '🦇';
+        } else if (type === 'shadow_chaser') {
+            this.radius = 16;
+            this.maxHealth = 10 * levelMultiplier;
+            this.speed = 1.5;
+            this.damage = 0.5;
+            this.color = '#a855f7';
+            this.icon = '💀';
+        }
+        // LEVEL 3: DEATH
+        else if (type === 'death_swarmer') {
+            this.radius = 10;
+            this.maxHealth = 6 * levelMultiplier;
+            this.speed = 2.4;
+            this.damage = 0.5;
+            this.color = '#65a30d';
+            this.icon = '🐀';
+        } else if (type === 'death_shooter') {
+            this.radius = 15;
+            this.maxHealth = 10 * levelMultiplier;
+            this.speed = 1.0;
+            this.damage = 0.5;
+            this.shootCooldown = 80 + Math.random() * 40;
+            this.color = '#047857';
+            this.icon = '🧙';
+        } else if (type === 'death_chaser') {
+            this.radius = 16;
+            this.maxHealth = 15 * levelMultiplier;
+            this.speed = 1.2;
+            this.damage = 0.5;
+            this.color = '#d6d3d1';
+            this.icon = '💀';
+        }
+        // LEVEL 4: FIRE
+        else if (type === 'fire_swarmer') {
+            this.radius = 14;
+            this.maxHealth = 9 * levelMultiplier;
+            this.speed = 1.5;
+            this.damage = 0.5;
+            this.color = '#ea580c';
+            this.icon = '🔥';
+        } else if (type === 'fire_mini_swarmer') {
+            this.radius = 8;
+            this.maxHealth = 4 * levelMultiplier;
+            this.speed = 1.9;
+            this.damage = 0.25;
+            this.color = '#f97316';
+            this.icon = '🔸';
+        } else if (type === 'fire_shooter') {
+            this.radius = 13;
+            this.maxHealth = 9 * levelMultiplier;
+            this.speed = 1.3;
+            this.damage = 0.5;
+            this.shootCooldown = 65 + Math.random() * 45;
+            this.color = '#ef4444';
+            this.icon = '😈';
+        } else if (type === 'fire_chaser') {
+            this.radius = 16;
+            this.maxHealth = 13 * levelMultiplier;
+            this.speed = 1.4;
+            this.damage = 0.5;
+            this.color = '#b91c1c';
+            this.icon = '🐺';
+        }
+        // LEVEL 5: VOID
+        else if (type === 'void_swarmer') {
+            this.radius = 14;
+            this.maxHealth = 12 * levelMultiplier;
+            this.speed = 1.7;
+            this.damage = 0.5;
+            this.color = '#c084fc';
+            this.icon = '✨';
+        } else if (type === 'void_shooter') {
+            this.radius = 15;
+            this.maxHealth = 13 * levelMultiplier;
+            this.speed = 1.2;
+            this.damage = 0.5;
+            this.shootCooldown = 75 + Math.random() * 50;
+            this.color = '#581c87';
+            this.icon = '👁️';
+        } else if (type === 'void_chaser') {
+            this.radius = 17;
+            this.maxHealth = 18 * levelMultiplier;
+            this.speed = 1.0;
+            this.damage = 0.5;
+            this.color = '#312e81';
+            this.icon = '🌀';
+        }
 
         this.health = this.maxHealth;
         this.vx = 0;
         this.vy = 0;
         this.knockbackX = 0;
         this.knockbackY = 0;
+
+        // Custom AI state variables
+        this.aiTimer = 0;
+        this.aiState = 0; 
+        this.chargeTimer = 0;
+        this.chargeVx = 0;
+        this.chargeVy = 0;
+        this.teleportCooldown = 0;
+        this.stealthActive = false;
+        this.shieldActive = false;
     }
 
     takeDamage(amount, kx = 0, ky = 0) {
+        // Skeleton Warrior front block check
+        if (this.type === 'death_chaser' && Math.random() < 0.35) {
+            spawnFloatingText(this.x, this.y - 12, "BLOCKED!", '#94a3b8', 12);
+            audio.play('deflect');
+            return;
+        }
+
         this.health -= amount;
         this.knockbackX = kx;
         this.knockbackY = ky;
@@ -1177,41 +1431,448 @@ export class Enemy {
 
         const currentSpeed = this.speed * speedMultiplier;
 
-        if (this.type === 'chaser' || this.type === 'swarmer' || this.type === 'mini_swarmer') {
-            // Walk directly towards player
+        // -------------------------------------------------------------
+        // Level 1: Forest AI logic
+        // -------------------------------------------------------------
+        if (this.type === 'forest_swarmer' || this.type === 'forest_mini_swarmer') {
+            if (dist > 5) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+        } 
+        else if (this.type === 'forest_shooter') {
+            const idealDist = 220;
+            if (dist > idealDist + 20) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            } else if (dist < idealDist - 20) {
+                this.x -= (dx / dist) * currentSpeed;
+                this.y -= (dy / dist) * currentSpeed;
+            } else {
+                this.x += (-dy / dist) * currentSpeed * 0.7;
+                this.y += (dx / dist) * currentSpeed * 0.7;
+            }
+
+            if (this.shootCooldown > 0) {
+                this.shootCooldown--;
+            } else {
+                this.shootCooldown = 70 + Math.random() * 50;
+                projectiles.push(new Projectile({
+                    x: this.x,
+                    y: this.y,
+                    vx: (dx / dist) * 4.0,
+                    vy: (dy / dist) * 4.0,
+                    damage: this.damage,
+                    range: 380,
+                    type: 'wood_shard',
+                    owner: 'enemy'
+                }));
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+        } 
+        else if (this.type === 'forest_sprout') {
+            if (dist > 120) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            }
+            if (this.shootCooldown > 0) {
+                this.shootCooldown--;
+            } else {
+                this.shootCooldown = 100 + Math.random() * 40;
+                for (let i = 0; i < 5; i++) {
+                    const angle = (Math.PI * 2 / 5) * i + Math.random() * 0.2;
+                    projectiles.push(new Projectile({
+                        x: this.x,
+                        y: this.y,
+                        vx: Math.cos(angle) * 3.0,
+                        vy: Math.sin(angle) * 3.0,
+                        damage: this.damage,
+                        range: 250,
+                        type: 'wood_shard',
+                        owner: 'enemy'
+                    }));
+                }
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+        }
+        // -------------------------------------------------------------
+        // Level 2: Shadow AI logic
+        // -------------------------------------------------------------
+        else if (this.type === 'shadow_swarmer') {
+            this.aiTimer++;
+            if (this.aiTimer >= 110) {
+                this.aiTimer = 0;
+                this.stealthActive = true;
+                this.aiState = 35; 
+            }
+            
+            let lurkSpeed = currentSpeed;
+            if (this.stealthActive) {
+                lurkSpeed = currentSpeed * 2.2;
+                this.aiState--;
+                if (this.aiState <= 0) {
+                    this.stealthActive = false;
+                }
+            }
+
+            if (dist > 5) {
+                this.x += (dx / dist) * lurkSpeed;
+                this.y += (dy / dist) * lurkSpeed;
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+                if (this.stealthActive) {
+                    this.stealthActive = false;
+                }
+            }
+        } 
+        else if (this.type === 'shadow_shooter') {
+            const idealDist = 240;
+            if (dist > idealDist + 20) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            } else if (dist < idealDist - 20) {
+                this.x -= (dx / dist) * currentSpeed;
+                this.y -= (dy / dist) * currentSpeed;
+            } else {
+                this.x += (-dy / dist) * currentSpeed * 0.7;
+                this.y += (dx / dist) * currentSpeed * 0.7;
+            }
+
+            if (this.shootCooldown > 0) {
+                this.shootCooldown--;
+            } else {
+                this.shootCooldown = 85 + Math.random() * 40;
+                projectiles.push(new Projectile({
+                    x: this.x,
+                    y: this.y,
+                    vx: (dx / dist) * 3.2,
+                    vy: (dy / dist) * 3.2,
+                    damage: this.damage,
+                    range: 420,
+                    type: 'shadow_bolt',
+                    owner: 'enemy'
+                }));
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+        } 
+        else if (this.type === 'shadow_chaser') {
+            this.aiTimer++;
+            if (this.chargeTimer > 0) {
+                this.x += this.chargeVx * currentSpeed * 2.5;
+                this.y += this.chargeVy * currentSpeed * 2.5;
+                this.chargeTimer--;
+            } else {
+                if (dist > 5) {
+                    this.x += (dx / dist) * currentSpeed;
+                    this.y += (dy / dist) * currentSpeed;
+                }
+                if (dist < 140 && this.aiTimer > 95) {
+                    this.aiTimer = 0;
+                    this.chargeTimer = 25; 
+                    this.chargeVx = dx / dist;
+                    this.chargeVy = dy / dist;
+                    spawnFloatingText(this.x, this.y - 15, "SCREECH!", '#c084fc', 12);
+                    audio.play('boss_scream');
+                }
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage * (this.chargeTimer > 0 ? 1.5 : 1.0));
+            }
+        }
+        // -------------------------------------------------------------
+        // Level 3: Death AI logic
+        // -------------------------------------------------------------
+        else if (this.type === 'death_swarmer') {
+            if (dist > 5) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+                if (Math.random() < 0.2) { 
+                    player.takeDamage(0.25);
+                    spawnFloatingText(player.x, player.y - 18, "POISONED!", '#84cc16', 11);
+                }
+            }
+        } 
+        else if (this.type === 'death_shooter') {
+            const idealDist = 210;
+            if (dist > idealDist + 20) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            } else if (dist < idealDist - 20) {
+                this.x -= (dx / dist) * currentSpeed;
+                this.y -= (dy / dist) * currentSpeed;
+            } else {
+                this.x += (-dy / dist) * currentSpeed * 0.7;
+                this.y += (dx / dist) * currentSpeed * 0.7;
+            }
+
+            if (this.shootCooldown > 0) {
+                this.shootCooldown--;
+            } else {
+                this.shootCooldown = 95 + Math.random() * 45;
+                const baseAngle = Math.atan2(dy, dx);
+                for (let i = -1; i <= 1; i++) {
+                    const angle = baseAngle + i * 0.25;
+                    projectiles.push(new Projectile({
+                        x: this.x,
+                        y: this.y,
+                        vx: Math.cos(angle) * 3.8,
+                        vy: Math.sin(angle) * 3.8,
+                        damage: this.damage,
+                        range: 350,
+                        type: 'bone_shard',
+                        owner: 'enemy'
+                    }));
+                }
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+        } 
+        else if (this.type === 'death_chaser') {
+            if (dist > 5) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+        }
+        // -------------------------------------------------------------
+        // Level 4: Fire AI logic
+        // -------------------------------------------------------------
+        else if (this.type === 'fire_swarmer' || this.type === 'fire_mini_swarmer') {
+            if (dist > 5) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+
+            if (this.type === 'fire_swarmer' && Math.random() < 0.008) {
+                obstacles.push({
+                    x: this.x,
+                    y: this.y,
+                    type: 'fire_puddle',
+                    width: 34,
+                    height: 34,
+                    timer: 160,
+                    extinguished: false
+                });
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                if (obs.type === 'fire_puddle') {
+                    obs.timer--;
+                    if (obs.timer <= 0) {
+                        obstacles.splice(i, 1);
+                    } else {
+                        const pdx = player.x - obs.x;
+                        const pdy = player.y - obs.y;
+                        const pdist = Math.sqrt(pdx*pdx + pdy*pdy);
+                        if (pdist < 17 + player.radius) {
+                            player.takeDamage(0.15); 
+                            if (Math.random() < 0.05) {
+                                spawnFloatingText(player.x, player.y - 15, "BURNING!", '#f97316', 11);
+                            }
+                        }
+                    }
+                }
+            }
+        } 
+        else if (this.type === 'fire_shooter') {
+            const idealDist = 220;
+            if (dist > idealDist + 20) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            } else if (dist < idealDist - 20) {
+                this.x -= (dx / dist) * currentSpeed;
+                this.y -= (dy / dist) * currentSpeed;
+            } else {
+                this.x += (-dy / dist) * currentSpeed * 0.8;
+                this.y += (dx / dist) * currentSpeed * 0.8;
+            }
+
+            if (this.shootCooldown > 0) {
+                this.shootCooldown--;
+            } else {
+                this.shootCooldown = 75 + Math.random() * 40;
+                projectiles.push(new Projectile({
+                    x: this.x,
+                    y: this.y,
+                    vx: (dx / dist) * 4.2,
+                    vy: (dy / dist) * 4.2,
+                    damage: this.damage,
+                    range: 380,
+                    type: 'fireball',
+                    owner: 'enemy'
+                }));
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+        } 
+        else if (this.type === 'fire_chaser') {
+            this.aiTimer++;
+            if (this.chargeTimer > 0) {
+                this.x += this.chargeVx * currentSpeed * 2.8;
+                this.y += this.chargeVy * currentSpeed * 2.8;
+                this.chargeTimer--;
+            } else {
+                if (this.aiState === 1) {
+                    this.aiTimer--;
+                    if (this.aiTimer <= 0) {
+                        this.aiState = 0;
+                        this.chargeTimer = 22;
+                        this.chargeVx = dx / dist;
+                        this.chargeVy = dy / dist;
+                    }
+                } else {
+                    if (dist > 5) {
+                        this.x += (dx / dist) * currentSpeed;
+                        this.y += (dy / dist) * currentSpeed;
+                    }
+                    if (dist < 130 && this.aiTimer > 90) {
+                        this.aiState = 1;
+                        this.aiTimer = 15; 
+                    }
+                }
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage * (this.chargeTimer > 0 ? 1.5 : 1.0));
+            }
+        }
+        // -------------------------------------------------------------
+        // Level 5: Void AI logic
+        // -------------------------------------------------------------
+        else if (this.type === 'void_swarmer') {
+            this.aiTimer++;
+            if (this.aiTimer > 85) {
+                this.aiTimer = 0;
+                spawnSmoke(this.x, this.y, 6);
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 60 + Math.random() * 60;
+                this.x = player.x + Math.cos(angle) * radius;
+                this.y = player.y + Math.sin(angle) * radius;
+                spawnSmoke(this.x, this.y, 6);
+                
+                for (let d = 0; d < 4; d++) {
+                    const bAngle = (Math.PI / 2) * d;
+                    projectiles.push(new Projectile({
+                        x: this.x,
+                        y: this.y,
+                        vx: Math.cos(bAngle) * 3.5,
+                        vy: Math.sin(bAngle) * 3.5,
+                        damage: this.damage,
+                        range: 150,
+                        type: 'bullet',
+                        owner: 'enemy'
+                    }));
+                }
+            }
+
+            if (dist > 5) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+        } 
+        else if (this.type === 'void_shooter') {
+            const idealDist = 200;
+            if (dist > idealDist + 20) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            } else if (dist < idealDist - 20) {
+                this.x -= (dx / dist) * currentSpeed;
+                this.y -= (dy / dist) * currentSpeed;
+            } else {
+                this.x += (-dy / dist) * currentSpeed * 0.7;
+                this.y += (dx / dist) * currentSpeed * 0.7;
+            }
+
+            if (this.shootCooldown > 0) {
+                this.shootCooldown--;
+            } else {
+                this.shootCooldown = 110 + Math.random() * 50;
+                projectiles.push(new Projectile({
+                    x: this.x,
+                    y: this.y,
+                    vx: (dx / dist) * 2.8,
+                    vy: (dy / dist) * 2.8,
+                    damage: this.damage,
+                    range: 400,
+                    type: 'homing_orb',
+                    owner: 'enemy'
+                }));
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
+        } 
+        else if (this.type === 'void_chaser') {
             if (dist > 5) {
                 this.x += (dx / dist) * currentSpeed;
                 this.y += (dy / dist) * currentSpeed;
             }
             
-            // Deal touch damage
+            if (dist < 260 && dist > 10) {
+                const pullForce = (260 - dist) * 0.0065;
+                player.x -= (dx / dist) * pullForce;
+                player.y -= (dy / dist) * pullForce;
+                
+                if (Math.random() < 0.1) {
+                    spawnSparkles(player.x, player.y, '#c084fc', 1);
+                }
+            }
+
             if (dist < this.radius + player.radius) {
                 player.takeDamage(this.damage);
             }
-
+        }
+        // -------------------------------------------------------------
+        // Generic Fallbacks
+        // -------------------------------------------------------------
+        else if (this.type === 'chaser' || this.type === 'swarmer' || this.type === 'mini_swarmer') {
+            if (dist > 5) {
+                this.x += (dx / dist) * currentSpeed;
+                this.y += (dy / dist) * currentSpeed;
+            }
+            if (dist < this.radius + player.radius) {
+                player.takeDamage(this.damage);
+            }
         } else if (this.type === 'shooter') {
-            // Keeps a comfortable distance, orbits/paces around player, fires projectiles
             const idealDist = 200;
             if (dist > idealDist + 20) {
-                // walk towards
                 this.x += (dx / dist) * currentSpeed;
                 this.y += (dy / dist) * currentSpeed;
             } else if (dist < idealDist - 20) {
-                // walk away
                 this.x -= (dx / dist) * currentSpeed;
                 this.y -= (dy / dist) * currentSpeed;
             } else {
-                // Orbit player (orthogonal pathing)
                 this.x += (-dy / dist) * currentSpeed * 0.7;
                 this.y += (dx / dist) * currentSpeed * 0.7;
             }
 
-            // Shooting AI
             if (this.shootCooldown > 0) {
                 this.shootCooldown--;
             } else {
-                this.shootCooldown = 90 + Math.random() * 60; // shoot every 1.5 - 2.5s
-                
+                this.shootCooldown = 90 + Math.random() * 60;
                 const speed = 3.5;
                 projectiles.push(new Projectile({
                     x: this.x,
@@ -1225,8 +1886,6 @@ export class Enemy {
                 }));
             }
 
-
-            // Touch damage
             if (dist < this.radius + player.radius) {
                 player.takeDamage(this.damage);
             }
@@ -1290,13 +1949,11 @@ export class Enemy {
             ctx.fill();
 
             // Pointy ears (drawn with bezier curves)
-            // Left Ear
             ctx.beginPath();
             ctx.moveTo(this.x - 8, this.y - 6 + wobble);
             ctx.bezierCurveTo(this.x - 18, this.y - 12 + wobble, this.x - 16, this.y - 2 + wobble, this.x - 8, this.y - 2 + wobble);
             ctx.closePath();
             ctx.fill();
-            // Left Inner Ear (Peach)
             ctx.fillStyle = '#fca5a5';
             ctx.beginPath();
             ctx.moveTo(this.x - 8, this.y - 5 + wobble);
@@ -1304,14 +1961,12 @@ export class Enemy {
             ctx.closePath();
             ctx.fill();
 
-            // Right Ear
             ctx.fillStyle = '#22c55e';
             ctx.beginPath();
             ctx.moveTo(this.x + 8, this.y - 6 + wobble);
             ctx.bezierCurveTo(this.x + 18, this.y - 12 + wobble, this.x + 16, this.y - 2 + wobble, this.x + 8, this.y - 2 + wobble);
             ctx.closePath();
             ctx.fill();
-            // Right Inner Ear (Peach)
             ctx.fillStyle = '#fca5a5';
             ctx.beginPath();
             ctx.moveTo(this.x + 8, this.y - 5 + wobble);
@@ -1326,7 +1981,6 @@ export class Enemy {
             ctx.arc(this.x + 3, this.y - 4 + wobble, 2, 0, Math.PI*2);
             ctx.fill();
 
-            // Dark pupil slits
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -1336,7 +1990,6 @@ export class Enemy {
             ctx.lineTo(this.x + 3, this.y - 2 + wobble);
             ctx.stroke();
 
-            // Menacing mouth / smirk
             ctx.strokeStyle = '#14532d';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
@@ -1348,7 +2001,6 @@ export class Enemy {
             const wingFlap = Math.sin(Date.now() * 0.015) * 12;
             const hoverWobble = Math.sin(Date.now() * 0.008) * 3;
 
-            // Wing left
             ctx.fillStyle = '#0f172a';
             ctx.beginPath();
             ctx.moveTo(this.x - 2, this.y + hoverWobble);
@@ -1357,7 +2009,6 @@ export class Enemy {
             ctx.closePath();
             ctx.fill();
 
-            // Wing right
             ctx.beginPath();
             ctx.moveTo(this.x + 2, this.y + hoverWobble);
             ctx.bezierCurveTo(this.x + 16, this.y - 12 + wingFlap + hoverWobble, this.x + 28, this.y - 4 + wingFlap + hoverWobble, this.x + 8, this.y + 8 + hoverWobble);
@@ -1365,13 +2016,11 @@ export class Enemy {
             ctx.closePath();
             ctx.fill();
 
-            // Bat Head & Body (Charcoal-black)
             ctx.fillStyle = '#1e293b';
             ctx.beginPath();
             ctx.arc(this.x, this.y + hoverWobble, 10, 0, Math.PI * 2);
             ctx.fill();
 
-            // Pointy Bat Ears
             ctx.beginPath();
             ctx.moveTo(this.x - 7, this.y - 7 + hoverWobble);
             ctx.lineTo(this.x - 12, this.y - 17 + hoverWobble);
@@ -1386,7 +2035,6 @@ export class Enemy {
             ctx.closePath();
             ctx.fill();
 
-            // Inner ears (pinkish/red)
             ctx.fillStyle = '#ef4444';
             ctx.beginPath();
             ctx.moveTo(this.x - 6, this.y - 8 + hoverWobble);
@@ -1402,7 +2050,6 @@ export class Enemy {
             ctx.closePath();
             ctx.fill();
 
-            // Glowing crimson red eyes
             ctx.shadowBlur = 6;
             ctx.shadowColor = '#ef4444';
             ctx.fillStyle = '#fca5a5';
@@ -1440,13 +2087,11 @@ export class Enemy {
             ctx.closePath();
             ctx.fill();
 
-            // Highlight
             ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.beginPath();
             ctx.arc(-this.radius * 0.3, -this.radius * 1.3, this.radius * 0.25, 0, Math.PI * 2);
             ctx.fill();
 
-            // Bubbles inside
             const b1Offset = Math.sin(baseTime * 0.5) * (this.radius * 0.25);
             ctx.fillStyle = 'rgba(165, 243, 252, 0.6)';
             ctx.beginPath();
@@ -1454,7 +2099,6 @@ export class Enemy {
             ctx.arc(-this.radius * 0.4, -this.radius * 0.5 - b1Offset, this.radius * 0.1, 0, Math.PI * 2);
             ctx.fill();
 
-            // Eyes
             ctx.fillStyle = '#052e16';
             ctx.beginPath();
             ctx.arc(-this.radius * 0.25, -this.radius * 0.7, this.radius * 0.15, 0, Math.PI * 2);
@@ -1463,6 +2107,588 @@ export class Enemy {
 
             ctx.restore();
         }
+        // -------------------------------------------------------------
+        // LEVEL 1: FOREST
+        // -------------------------------------------------------------
+        else if (this.type === 'forest_swarmer' || this.type === 'forest_mini_swarmer') {
+            const baseTime = Date.now() * 0.015;
+            const squash = Math.sin(baseTime) * 0.16;
+            ctx.save();
+            ctx.translate(this.x, this.y + this.radius);
+            ctx.scale(1 + squash, 1 - squash);
+            
+            const grad = ctx.createRadialGradient(0, -this.radius * 0.6, 2, 0, -this.radius * 0.6, this.radius);
+            grad.addColorStop(0, '#86efac'); 
+            grad.addColorStop(0.7, '#22c55e'); 
+            grad.addColorStop(1, '#15803d');
+            ctx.fillStyle = grad;
+
+            ctx.beginPath();
+            ctx.arc(0, -this.radius, this.radius, 0, Math.PI, true);
+            ctx.lineTo(-this.radius, 0);
+            ctx.quadraticCurveTo(0, this.radius * 0.2, this.radius, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#15803d';
+            ctx.strokeStyle = '#14532d';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-this.radius * 0.5, -this.radius * 0.9);
+            ctx.quadraticCurveTo(-this.radius * 1.1, -this.radius * 1.5, -this.radius * 0.8, -this.radius * 1.8);
+            ctx.quadraticCurveTo(-this.radius * 0.3, -this.radius * 1.3, -this.radius * 0.3, -this.radius * 0.9);
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(this.radius * 0.5, -this.radius * 0.9);
+            ctx.quadraticCurveTo(this.radius * 1.1, -this.radius * 1.5, this.radius * 0.8, -this.radius * 1.8);
+            ctx.quadraticCurveTo(this.radius * 0.3, -this.radius * 1.3, this.radius * 0.3, -this.radius * 0.9);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.arc(-this.radius * 0.3, -this.radius * 1.1, this.radius * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#064e3b';
+            ctx.beginPath();
+            ctx.arc(-this.radius * 0.25, -this.radius * 0.6, this.radius * 0.15, 0, Math.PI * 2);
+            ctx.arc(this.radius * 0.25, -this.radius * 0.6, this.radius * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        } 
+        else if (this.type === 'forest_shooter') {
+            const wobble = Math.sin(Date.now() * 0.007) * 1.5;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            ctx.fillStyle = '#78350f';
+            ctx.strokeStyle = '#451a03';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.roundRect(-this.radius, -this.radius + 3, this.radius * 2, this.radius * 2 - 3, 5);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#b45309';
+            ctx.beginPath();
+            ctx.ellipse(0, -this.radius + 3, this.radius, 4, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.ellipse(-this.radius * 0.8, wobble, 5, 2.5, -0.4, 0, Math.PI*2);
+            ctx.ellipse(this.radius * 0.8, -wobble, 5, 2.5, 0.4, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#022c22';
+            ctx.beginPath();
+            ctx.ellipse(0, 3 + wobble, this.radius * 0.5, 6, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#4ade80';
+            ctx.beginPath();
+            ctx.arc(-3, 3 + wobble, 1.8, 0, Math.PI*2);
+            ctx.arc(3, 3 + wobble, 1.8, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        } 
+        else if (this.type === 'forest_sprout') {
+            const pulse = 1.0 + Math.sin(Date.now() * 0.01) * 0.08;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.scale(pulse, pulse);
+
+            ctx.fillStyle = '#14532d';
+            ctx.fillRect(-4, 6, 8, 14);
+
+            ctx.fillStyle = '#dc2626';
+            ctx.strokeStyle = '#991b1b';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, -2, 12, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.ellipse(0, -2, 8, 10, 0.3, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#451a03';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI * 2 / 6) * i;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(angle) * 12, Math.sin(angle) * 12);
+                ctx.lineTo(Math.cos(angle) * 18, Math.sin(angle) * 18);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+        // -------------------------------------------------------------
+        // LEVEL 2: SHADOW
+        // -------------------------------------------------------------
+        else if (this.type === 'shadow_swarmer') {
+            ctx.save();
+            if (this.stealthActive) {
+                ctx.globalAlpha = 0.15;
+            }
+            
+            const wobble = Math.sin(Date.now() * 0.01) * 3;
+            ctx.translate(this.x, this.y + wobble);
+
+            ctx.fillStyle = '#3b0764';
+            ctx.strokeStyle = '#1e1b4b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-12, 12);
+            ctx.lineTo(0, -18);
+            ctx.lineTo(12, 12);
+            ctx.quadraticCurveTo(0, 7, -12, 12);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#030712';
+            ctx.beginPath();
+            ctx.arc(0, -6, 6, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#c084fc';
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#c084fc';
+            ctx.beginPath();
+            ctx.arc(-2.2, -6, 1.2, 0, Math.PI*2);
+            ctx.arc(2.2, -6, 1.2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+        } 
+        else if (this.type === 'shadow_shooter') {
+            const wingFlap = Math.sin(Date.now() * 0.016) * 10;
+            const hover = Math.sin(Date.now() * 0.009) * 3.5;
+            ctx.save();
+            ctx.translate(this.x, this.y + hover);
+
+            ctx.fillStyle = '#4b5563';
+            ctx.strokeStyle = '#1f2937';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-2, 0);
+            ctx.bezierCurveTo(-14, -10 + wingFlap, -26, -2 + wingFlap, -8, 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(2, 0);
+            ctx.bezierCurveTo(14, -10 + wingFlap, 26, -2 + wingFlap, 8, 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#374151';
+            ctx.beginPath();
+            ctx.arc(0, 0, 11, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#1f2937';
+            ctx.beginPath();
+            ctx.moveTo(-6, -8); ctx.lineTo(-9, -15); ctx.lineTo(-2, -9); ctx.fill();
+            ctx.moveTo(6, -8); ctx.lineTo(9, -15); ctx.lineTo(2, -9); ctx.fill();
+
+            ctx.fillStyle = '#d8b4fe';
+            ctx.beginPath();
+            ctx.arc(-3, -2, 1.8, 0, Math.PI*2);
+            ctx.arc(3, -2, 1.8, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        } 
+        else if (this.type === 'shadow_chaser') {
+            const wobble = Math.sin(Date.now() * 0.013) * 3;
+            ctx.save();
+            ctx.translate(this.x, this.y + wobble);
+
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.12)';
+            ctx.beginPath();
+            ctx.arc(0, -3, 16, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#faf5ff';
+            ctx.strokeStyle = '#c084fc';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, -3, 12, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillRect(-6, 6, 12, 6);
+            ctx.strokeRect(-6, 6, 12, 6);
+
+            ctx.fillStyle = '#1e1b4b';
+            ctx.beginPath();
+            ctx.arc(-4, -3, 3, 0, Math.PI*2);
+            ctx.arc(4, -3, 3, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(-4, -3, 0.8, 0, Math.PI*2);
+            ctx.arc(4, -3, 0.8, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+        // -------------------------------------------------------------
+        // LEVEL 3: DEATH
+        // -------------------------------------------------------------
+        else if (this.type === 'death_swarmer') {
+            const run = Math.sin(Date.now() * 0.024) * 3.5;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            ctx.strokeStyle = '#fca5a5';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-10, 2);
+            ctx.quadraticCurveTo(-18, 5 + run, -22, 1 + run);
+            ctx.stroke();
+
+            ctx.fillStyle = '#4b5563';
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 11, 7, 0.1, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(5, -3);
+            ctx.lineTo(13, 1);
+            ctx.lineTo(4, 4);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#fca5a5';
+            ctx.beginPath();
+            ctx.arc(2, -5, 3.5, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(7, -1, 1.2, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        } 
+        else if (this.type === 'death_shooter') {
+            const sway = Math.sin(Date.now() * 0.006) * 0.05;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(sway);
+
+            ctx.fillStyle = '#064e3b';
+            ctx.strokeStyle = '#022c22';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(-11, 12);
+            ctx.lineTo(-4, -18);
+            ctx.lineTo(4, -18);
+            ctx.lineTo(11, 12);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#022c22';
+            ctx.beginPath();
+            ctx.ellipse(0, -9, 6, 8, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#f1f5f9';
+            ctx.beginPath();
+            ctx.arc(0, -8, 4.2, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(-1.5, -9, 0.9, 0, Math.PI*2);
+            ctx.arc(1.5, -9, 0.9, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        } 
+        else if (this.type === 'death_chaser') {
+            const legWobble = Math.sin(Date.now() * 0.015) * 3;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.5;
+            
+            ctx.fillRect(-5, 7, 2, 7 + legWobble);
+            ctx.fillRect(3, 7, 2, 7 - legWobble);
+
+            ctx.fillRect(-1, -6, 2, 13);
+            ctx.fillRect(-8, -4, 16, 1.8);
+            ctx.fillRect(-6, -1, 12, 1.8);
+            ctx.fillRect(-5, 2, 10, 1.8);
+
+            ctx.beginPath();
+            ctx.arc(0, -11, 6, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(-2, -11, 1.5, 0, Math.PI*2);
+            ctx.arc(2, -11, 1.5, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#78350f'; 
+            ctx.strokeStyle = '#475569'; 
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(5, -6);
+            ctx.lineTo(13, -6);
+            ctx.lineTo(11, 8);
+            ctx.lineTo(5, 12);
+            ctx.lineTo(-1, 8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore();
+        }
+        // -------------------------------------------------------------
+        // LEVEL 4: FIRE
+        // -------------------------------------------------------------
+        else if (this.type === 'fire_swarmer' || this.type === 'fire_mini_swarmer') {
+            const baseTime = Date.now() * 0.015;
+            const squash = Math.sin(baseTime) * 0.16;
+            ctx.save();
+            ctx.translate(this.x, this.y + this.radius);
+            ctx.scale(1 + squash, 1 - squash);
+            
+            const grad = ctx.createRadialGradient(0, -this.radius * 0.6, 2, 0, -this.radius * 0.6, this.radius);
+            grad.addColorStop(0, '#fde047'); 
+            grad.addColorStop(0.5, '#ea580c'); 
+            grad.addColorStop(1, '#7c2d12'); 
+            ctx.fillStyle = grad;
+
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#ea580c';
+
+            ctx.beginPath();
+            ctx.arc(0, -this.radius, this.radius, 0, Math.PI, true);
+            ctx.lineTo(-this.radius, 0);
+            ctx.quadraticCurveTo(0, this.radius * 0.2, this.radius, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(-this.radius * 0.3, -this.radius * 0.8, this.radius * 0.16, 0, Math.PI*2);
+            ctx.arc(this.radius * 0.4, -this.radius * 0.5, this.radius * 0.12, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#450a0a';
+            ctx.beginPath();
+            ctx.arc(-this.radius * 0.25, -this.radius * 0.6, this.radius * 0.14, 0, Math.PI * 2);
+            ctx.arc(this.radius * 0.25, -this.radius * 0.6, this.radius * 0.14, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        } 
+        else if (this.type === 'fire_shooter') {
+            const flap = Math.sin(Date.now() * 0.02) * 8;
+            const wobble = Math.sin(Date.now() * 0.009) * 3;
+            ctx.save();
+            ctx.translate(this.x, this.y + wobble);
+
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath();
+            ctx.moveTo(-2, 0); ctx.lineTo(-14, -10 + flap); ctx.lineTo(-6, 6); ctx.closePath(); ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(2, 0); ctx.lineTo(14, -10 + flap); ctx.lineTo(6, 6); ctx.closePath(); ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.strokeStyle = '#7c2d12';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#450a0a';
+            ctx.beginPath();
+            ctx.moveTo(-5, -8); ctx.lineTo(-7, -13); ctx.lineTo(-2, -9); ctx.closePath(); ctx.fill();
+            ctx.moveTo(5, -8); ctx.lineTo(7, -13); ctx.lineTo(2, -9); ctx.closePath(); ctx.fill();
+
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(-3, -2, 1.8, 0, Math.PI*2);
+            ctx.arc(3, -2, 1.8, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        } 
+        else if (this.type === 'fire_chaser') {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#f97316';
+
+            ctx.fillStyle = '#292524';
+            ctx.strokeStyle = '#ea580c';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.ellipse(0, 2, 13, 8, 0.15, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = '#ea580c';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-6, -1); ctx.lineTo(-3, 5);
+            ctx.moveTo(2, -2); ctx.lineTo(5, 4);
+            ctx.stroke();
+
+            ctx.fillStyle = '#292524';
+            ctx.beginPath();
+            ctx.moveTo(6, -2);
+            ctx.lineTo(16, 2);
+            ctx.lineTo(4, 6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(9, 0, 1.5, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+        // -------------------------------------------------------------
+        // LEVEL 5: VOID
+        // -------------------------------------------------------------
+        else if (this.type === 'void_swarmer') {
+            const rot = (Date.now() * 0.003) % (Math.PI * 2);
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(rot);
+
+            const voidGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, 12);
+            voidGrad.addColorStop(0, '#e0f2fe');
+            voidGrad.addColorStop(0.5, '#c084fc');
+            voidGrad.addColorStop(1, 'rgba(88, 28, 135, 0)');
+            ctx.fillStyle = voidGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 14, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(0, -11);
+            ctx.lineTo(10, 0);
+            ctx.lineTo(0, 11);
+            ctx.lineTo(-10, 0);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(0, -11, 2.5, 0, Math.PI*2);
+            ctx.arc(10, 0, 2.5, 0, Math.PI*2);
+            ctx.arc(0, 11, 2.5, 0, Math.PI*2);
+            ctx.arc(-10, 0, 2.5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+        } 
+        else if (this.type === 'void_shooter') {
+            const hover = Math.sin(Date.now() * 0.007) * 3;
+            ctx.save();
+            ctx.translate(this.x, this.y + hover);
+
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 1.5;
+            ctx.save();
+            ctx.rotate(Date.now() * 0.002);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, this.radius + 3, 5, 0, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = '#1e1b4b';
+            ctx.strokeStyle = '#581c87';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#06b6d4';
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#020617';
+            ctx.beginPath();
+            ctx.arc(0, 0, 2.2, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(-1.2, -1.2, 1, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        } 
+        else if (this.type === 'void_chaser') {
+            const rot = Date.now() * 0.005;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(rot);
+
+            ctx.fillStyle = '#030712';
+            ctx.strokeStyle = '#4c1d95';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#6d28d9';
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius - 2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < 3; i++) {
+                const angle = (Math.PI * 2 / 3) * i;
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(Math.cos(angle + 0.5) * 12, Math.sin(angle + 0.5) * 12, Math.cos(angle + 1.2) * 20, Math.sin(angle + 1.2) * 20);
+            }
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
 
         // Draw health bar above if damaged
         if (this.health < this.maxHealth) {
