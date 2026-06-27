@@ -1,7 +1,7 @@
 // Entities for Void Wanderer
 // Handles Player, Weapons, Projectiles, Enemies, Bosses, Drops, and Collisions
 
-import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke } from './particles.js?v=24';
+import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke, spawnLightningExplosion } from './particles.js?v=24';
 import { ROOM_TYPES } from './dungeon.js?v=24';
 import { audio } from './audio.js?v=24';
 
@@ -921,10 +921,8 @@ export class Projectile {
         if (this.distanceTraveled >= this.range || 
             this.x < 64 || this.x > 736 || this.y < 64 || this.y > 536) {
             
-            if (this.type === 'magic') {
+            if (this.type === 'magic' || this.type === 'lightning') {
                 this.explode(currentRoom);
-            } else if (this.type === 'lightning') {
-                spawnSparkles(this.x, this.y, '#22d3ee', 12);
             }
             if (this.type === 'webball' && currentRoom) {
                 currentRoom.obstacles.push({
@@ -962,10 +960,8 @@ export class Projectile {
                         }
                     }
 
-                    if (this.type === 'magic') {
+                    if (this.type === 'magic' || this.type === 'lightning') {
                         this.explode(currentRoom);
-                    } else if (this.type === 'lightning') {
-                        spawnSparkles(this.x, this.y, '#22d3ee', 12);
                     } else if (this.type === 'webball' && currentRoom) {
                         currentRoom.obstacles.push({
                             x: this.x,
@@ -988,10 +984,8 @@ export class Projectile {
                 if (dist < this.radius + 15) {
                     obs.extinguished = true;
                     spawnSmoke(obs.x, obs.y, 4);
-                    if (this.type === 'magic') {
+                    if (this.type === 'magic' || this.type === 'lightning') {
                         this.explode(currentRoom);
-                    } else if (this.type === 'lightning') {
-                        spawnSparkles(this.x, this.y, '#22d3ee', 12);
                     }
                     return false;
                 }
@@ -1031,7 +1025,11 @@ export class Projectile {
     }
 
     explode(currentRoom) {
-        spawnExplosion(this.x, this.y, 60);
+        if (this.type === 'lightning') {
+            spawnLightningExplosion(this.x, this.y, 65);
+        } else {
+            spawnExplosion(this.x, this.y, 60);
+        }
         const radius = 70;
         
         if (!currentRoom) return;
