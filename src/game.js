@@ -677,11 +677,15 @@ class Game {
                 let type;
                 const r = Math.random();
                 if (this.level === 1) {
-                    type = r < 0.65 ? 'chaser' : 'swarmer';
+                    type = r < 0.45 ? 'forest_swarmer' : (r < 0.8 ? 'forest_shooter' : 'forest_sprout');
                 } else if (this.level === 2) {
-                    type = r < 0.5 ? 'chaser' : (r < 0.85 ? 'swarmer' : 'shooter');
+                    type = r < 0.45 ? 'shadow_swarmer' : (r < 0.8 ? 'shadow_shooter' : 'shadow_chaser');
+                } else if (this.level === 3) {
+                    type = r < 0.45 ? 'death_swarmer' : (r < 0.8 ? 'death_shooter' : 'death_chaser');
+                } else if (this.level === 4) {
+                    type = r < 0.45 ? 'fire_swarmer' : (r < 0.8 ? 'fire_shooter' : 'fire_chaser');
                 } else {
-                    type = r < 0.35 ? 'chaser' : (r < 0.65 ? 'swarmer' : 'shooter');
+                    type = r < 0.45 ? 'void_swarmer' : (r < 0.8 ? 'void_shooter' : 'void_chaser');
                 }
 
                 room.mobs.push(new Enemy(sx, sy, type, multiplier));
@@ -1339,11 +1343,24 @@ class Game {
             if (mob.health <= 0) {
                 if (mob instanceof Boss) {
                     audio.play('boss_die');
-                } else if (mob.type === 'swarmer' || mob.type === 'mini_swarmer') {
+                } else if (
+                    mob.type === 'swarmer' || mob.type === 'mini_swarmer' ||
+                    mob.type === 'forest_swarmer' || mob.type === 'forest_mini_swarmer' ||
+                    mob.type === 'fire_swarmer' || mob.type === 'fire_mini_swarmer'
+                ) {
                     audio.play('slime_die');
-                } else if (mob.type === 'shooter') {
+                } else if (
+                    mob.type === 'shooter' || mob.type === 'forest_shooter' ||
+                    mob.type === 'shadow_shooter' || mob.type === 'death_shooter' ||
+                    mob.type === 'fire_imp' || mob.type === 'fire_shooter' ||
+                    mob.type === 'void_shooter'
+                ) {
                     audio.play('bat_die');
-                } else if (mob.type === 'chaser') {
+                } else if (
+                    mob.type === 'chaser' || mob.type === 'shadow_chaser' ||
+                    mob.type === 'death_chaser' || mob.type === 'fire_chaser' ||
+                    mob.type === 'void_chaser'
+                ) {
                     audio.play('goblin_die');
                 } else {
                     audio.play('enemy_die');
@@ -1352,9 +1369,16 @@ class Game {
 
                 // Swarmer splitting logic
                 if (mob.type === 'swarmer') {
-                    // Split into two smaller slimes
                     room.mobs.push(new Enemy(mob.x - 10, mob.y, 'mini_swarmer', 1));
                     room.mobs.push(new Enemy(mob.x + 10, mob.y, 'mini_swarmer', 1));
+                    spawnSmoke(mob.x, mob.y, 4, 0.6);
+                } else if (mob.type === 'forest_swarmer') {
+                    room.mobs.push(new Enemy(mob.x - 10, mob.y, 'forest_mini_swarmer', 1));
+                    room.mobs.push(new Enemy(mob.x + 10, mob.y, 'forest_mini_swarmer', 1));
+                    spawnSmoke(mob.x, mob.y, 4, 0.6);
+                } else if (mob.type === 'fire_swarmer') {
+                    room.mobs.push(new Enemy(mob.x - 10, mob.y, 'fire_mini_swarmer', 1));
+                    room.mobs.push(new Enemy(mob.x + 10, mob.y, 'fire_mini_swarmer', 1));
                     spawnSmoke(mob.x, mob.y, 4, 0.6);
                 }
 
