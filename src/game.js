@@ -549,6 +549,7 @@ class Game {
     }
 
     generateLevel() {
+        audio.setMusicState('normal');
         this.dungeon = new Dungeon(this.level);
         this.projectiles = [];
         clearParticles();
@@ -930,12 +931,15 @@ class Game {
         // Re-render minimap
         this.dungeon.drawMinimap(this.minimapCtx);
 
-        // Trigger boss dialogue if room is Uncleared Boss Room
+        // Transition background music based on room type
         if (targetRoom.type === ROOM_TYPES.BOSS && !targetRoom.cleared) {
+            audio.setMusicState('boss');
             const boss = targetRoom.mobs.find(m => m instanceof Boss);
             if (boss) {
                 this.startBossDialogue(boss.name);
             }
+        } else {
+            audio.setMusicState('normal');
         }
     }
 
@@ -1676,8 +1680,9 @@ class Game {
                 spawnSparkles(400, 260, '#f59e0b', 12);
             }
 
-            // If Boss Room is cleared, spawn the Next Level Portal and Trophy
+            // If Boss Room is cleared, spawn the Next Level Portal and Trophy, and transition music
             if (room.type === ROOM_TYPES.BOSS) {
+                audio.setMusicState('normal');
                 room.drops.push(new Drop(400, 230, 'trophy'));
             }
 
