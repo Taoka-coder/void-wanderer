@@ -312,14 +312,16 @@ export class Dungeon {
     }
 
     drawMinimap(ctx) {
-        ctx.clearRect(0, 0, 148, 148);
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+        ctx.clearRect(0, 0, w, h);
         
-        // 9x9 grid, drawing offset - enlarged for maximum visibility in a 148x148 canvas
-        const roomSize = 13;
-        const gap = 2;
-        const totalGridSize = GRID_SIZE * (roomSize + gap) - gap; // 9 * 15 - 2 = 133
-        const offsetX = 74 - totalGridSize / 2; // Centered inside 148x148
-        const offsetY = 74 - totalGridSize / 2;
+        // 9x9 grid, centered dynamically
+        const roomSize = w > 110 ? 13 : 9;
+        const gap = w > 110 ? 2 : 1;
+        const totalGridSize = GRID_SIZE * (roomSize + gap) - gap;
+        const offsetX = w / 2 - totalGridSize / 2;
+        const offsetY = h / 2 - totalGridSize / 2;
 
         for (let y = 0; y < GRID_SIZE; y++) {
             for (let x = 0; x < GRID_SIZE; x++) {
