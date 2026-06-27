@@ -183,6 +183,21 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Boss Dialogue Overlay -->
+        <div id="boss-dialogue-overlay" class="overlay hidden">
+            <div class="overlay-card glass-panel boss-dialogue-card">
+                <div id="boss-dialogue-avatar" class="boss-dialogue-avatar">👹</div>
+                <h2 id="boss-dialogue-name" class="boss-dialogue-name">THE GOLEM</h2>
+                <div class="dialogue-chat-box">
+                    <p id="boss-dialogue-text" class="boss-dialogue-text"></p>
+                    <p id="player-dialogue-text" class="player-dialogue-text"></p>
+                </div>
+                <div class="boss-dialogue-actions">
+                    <button id="btn-boss-dialogue-next" class="btn btn-primary glow-effect">CONTINUE (Space)</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Shop Overlay -->
         <div id="shop-overlay" class="overlay hidden">
@@ -334,6 +349,6 @@
         </div>
     </div>
     <!-- Load game engine scripts -->
-    <script type="module" src="src/game.js?v=25"></script>
+    <script type="module" src="src/game.js?v=26"></script>
 </body>
 </html>
