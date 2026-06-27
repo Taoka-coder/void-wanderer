@@ -173,6 +173,26 @@ export function spawnExplosion(x, y, radius = 40) {
     }
 }
 
+export function spawnLightningExplosion(x, y, radius = 40) {
+    // Spawn smoke rings and cyan/white sparks
+    spawnSmoke(x, y, 8, radius / 30);
+    for (let i = 0; i < 22; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 5.5;
+        particles.push(new Particle({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 2.5 + Math.random() * 3.5,
+            color: Math.random() > 0.35 ? '#22d3ee' : '#ffffff', // cyan or white
+            life: 15 + Math.random() * 15,
+            drag: 0.91,
+            glow: true
+        }));
+    }
+}
+
 export function updateAndDrawParticles(ctx) {
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
