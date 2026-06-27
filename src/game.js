@@ -995,24 +995,31 @@ class Game {
     renderDialogueLine() {
         if (!this.activeDialogue) return;
         const line = this.activeDialogue.dialogue[this.dialogueIndex];
-        const avatarEl = document.getElementById('boss-dialogue-avatar');
-        const nameEl = document.getElementById('boss-dialogue-name');
-        const bossTextEl = document.getElementById('boss-dialogue-text');
-        const playerTextEl = document.getElementById('player-dialogue-text');
-
-        avatarEl.textContent = this.activeDialogue.avatar;
-        nameEl.textContent = this.activeDialogue.name || "THE BOSS";
+        
+        const rowEl = document.getElementById('dialogue-row');
+        const leftAvatarEl = document.getElementById('dialogue-left-avatar');
+        const rightAvatarEl = document.getElementById('dialogue-right-avatar');
+        const nameEl = document.getElementById('dialogue-speaker-name');
+        const textEl = document.getElementById('dialogue-text');
 
         if (line.speaker === 'boss') {
-            bossTextEl.textContent = `"${line.text}"`;
-            bossTextEl.style.opacity = 1;
-            playerTextEl.textContent = '';
-            playerTextEl.style.opacity = 0;
+            rowEl.className = 'dialogue-row speaker-boss';
+            
+            leftAvatarEl.textContent = this.activeDialogue.avatar;
+            leftAvatarEl.classList.remove('hidden');
+            rightAvatarEl.classList.add('hidden');
+            
+            nameEl.textContent = this.activeDialogue.name;
+            textEl.textContent = `"${line.text}"`;
         } else {
-            bossTextEl.textContent = '';
-            bossTextEl.style.opacity = 0;
-            playerTextEl.textContent = `"${line.text}"`;
-            playerTextEl.style.opacity = 1;
+            rowEl.className = 'dialogue-row speaker-player';
+            
+            rightAvatarEl.textContent = '👤'; // Player emoji
+            rightAvatarEl.classList.remove('hidden');
+            leftAvatarEl.classList.add('hidden');
+            
+            nameEl.textContent = 'WANDERER';
+            textEl.textContent = `"${line.text}"`;
         }
         
         audio.play('pickup');
