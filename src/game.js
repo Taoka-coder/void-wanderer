@@ -1816,6 +1816,64 @@ class Game {
         ctx.restore();
     }
 
+    drawWallTorch(ctx, tx, ty) {
+        ctx.save();
+        
+        // Draw light source radial glow behind the torch
+        const pulse = Math.sin(Date.now() * 0.008 + tx * 0.05) * 4 + 18;
+        const glowGrad = ctx.createRadialGradient(tx, ty, 2, tx, ty, pulse);
+        glowGrad.addColorStop(0, 'rgba(249, 115, 22, 0.25)'); // soft orange
+        glowGrad.addColorStop(0.5, 'rgba(239, 68, 68, 0.1)'); // soft red
+        glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        ctx.fillStyle = glowGrad;
+        ctx.beginPath();
+        ctx.arc(tx, ty, pulse, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw steel/wood torch bracket
+        ctx.fillStyle = '#451a03'; // dark brown handle
+        ctx.fillRect(tx - 2, ty, 4, 12);
+        ctx.fillStyle = '#1e293b'; // steel bracket holding the flame
+        ctx.fillRect(tx - 4, ty - 2, 8, 3);
+        
+        // Draw fire flame animated tear shape
+        const flameH = 8 + Math.sin(Date.now() * 0.015 + tx) * 3;
+        const flameW = 4 + Math.cos(Date.now() * 0.012 + tx) * 1;
+        
+        const flameGrad = ctx.createLinearGradient(tx, ty, tx, ty - flameH);
+        flameGrad.addColorStop(0, '#f97316'); // bright orange
+        flameGrad.addColorStop(0.5, '#eab308'); // yellow
+        flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)'); // fade
+        
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#f97316';
+        ctx.fillStyle = flameGrad;
+        
+        ctx.beginPath();
+        ctx.moveTo(tx - flameW, ty - 2);
+        ctx.quadraticCurveTo(tx - flameW, ty - 2 - flameH * 0.4, tx, ty - 2 - flameH);
+        ctx.quadraticCurveTo(tx + flameW, ty - 2 - flameH * 0.4, tx + flameW, ty - 2);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore();
+    }
+
+    drawWallChain(ctx, cx, cy, length = 35) {
+        ctx.save();
+        ctx.strokeStyle = '#475569'; // slate grey metal
+        ctx.lineWidth = 2.2;
+        
+        // Draw overlapping vertical links
+        for (let y = cy; y < cy + length; y += 7) {
+            ctx.beginPath();
+            ctx.arc(cx, y, 3, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     draw() {
         // Clear Screen
         this.ctx.fillStyle = '#050507';
@@ -2388,24 +2446,48 @@ class Game {
                 }
             }
         } else {
-            this.ctx.fillStyle = '#050508';
+            // Cool looking dark blue stone tiled floor
+            const floorGrad = this.ctx.createRadialGradient(400, 300, 50, 400, 300, 420);
+            floorGrad.addColorStop(0, '#0f172a'); // Slate blue stone
+            floorGrad.addColorStop(1, '#020617'); // Deep dark navy
+            this.ctx.fillStyle = floorGrad;
             this.ctx.fillRect(64, 64, 672, 472);
             
-            // Draw flagstone staggered seams
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
-            this.ctx.lineWidth = 1;
+            // Draw flagstone staggered seams with bevel shadows & sky blue highlights
             for (let y = 64; y < 536; y += brickH) {
+                // Horizontal crack shadow
+                this.ctx.strokeStyle = 'rgba(2, 6, 23, 0.9)';
+                this.ctx.lineWidth = 1.8;
                 this.ctx.beginPath();
                 this.ctx.moveTo(64, y);
                 this.ctx.lineTo(736, y);
+                this.ctx.stroke();
+
+                // Highlight line below shadow to create bevel depth
+                this.ctx.strokeStyle = 'rgba(56, 189, 248, 0.06)';
+                this.ctx.lineWidth = 1.0;
+                this.ctx.beginPath();
+                this.ctx.moveTo(64, y + 1.2);
+                this.ctx.lineTo(736, y + 1.2);
                 this.ctx.stroke();
                 
                 const isEvenRow = Math.floor(y / brickH) % 2 === 0;
                 const offset = isEvenRow ? 0 : (brickW / 2);
                 for (let x = 64 + offset; x < 736; x += brickW) {
+                    // Vertical crack shadow
+                    this.ctx.strokeStyle = 'rgba(2, 6, 23, 0.9)';
+                    this.ctx.lineWidth = 1.8;
                     this.ctx.beginPath();
                     this.ctx.moveTo(x, y);
                     this.ctx.lineTo(x, y + brickH);
+                    this.ctx.stroke();
+
+                    // Vertical Highlight line
+                    this.ctx.strokeStyle = 'rgba(56, 189, 248, 0.06)';
+                    this.ctx.lineWidth = 1.0;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x + 1.2, y);
+                    this.ctx.lineTo(x + 1.2, y + brickH);
                     this.ctx.stroke();
                 }
             }
@@ -2476,6 +2558,21 @@ class Game {
         this.drawStoneWall(this.ctx, 0, 0, 64, 600, true);
         // Right Wall
         this.drawStoneWall(this.ctx, 736, 0, 64, 600, true);
+
+        // Draw Wall Decorations (torches and chains)
+        // Top wall torches
+        this.drawWallTorch(this.ctx, 240, 48);
+        this.drawWallTorch(this.ctx, 560, 48);
+        // Bottom wall torches
+        this.drawWallTorch(this.ctx, 240, 552);
+        this.drawWallTorch(this.ctx, 560, 552);
+        // Left wall chains
+        this.drawWallChain(this.ctx, 32, 160, 40);
+        this.drawWallChain(this.ctx, 32, 380, 45);
+        // Right wall chains
+        this.drawWallChain(this.ctx, 768, 160, 45);
+        this.drawWallChain(this.ctx, 768, 380, 40);
+
 
         // Draw room inner borders with a nice glowing color representing Room Type
         this.ctx.save();
