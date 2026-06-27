@@ -21,11 +21,12 @@ class SoundEngine {
         this.musicEnabled = false;
 
         // Music Sequencer state
-        this.tempo = 80; // 80 BPM
+        this.tempo = 70; // 70 BPM default (darker/slower exploration)
         this.step = 0;
         this.nextNoteTime = 0.0;
         this.schedulerTimer = null;
-
+        this.musicState = 'normal'; // 'normal' or 'boss'
+        
         // Master gain nodes
         this.musicGain = null;
         this.sfxGain = null;
@@ -68,6 +69,18 @@ class SoundEngine {
         try {
             localStorage.setItem('void_wanderer_vol_sfx', vol.toString());
         } catch (e) {}
+    }
+
+    setMusicState(state) {
+        if (this.musicState === state) return;
+        this.musicState = state;
+        
+        // Adjust tempo dynamically
+        if (state === 'boss') {
+            this.tempo = 135; // Fast, aggressive boss battle
+        } else {
+            this.tempo = 70;  // Dark, slower exploration
+        }
     }
 
     startMusic() {
@@ -144,15 +157,22 @@ class SoundEngine {
 
     scheduleNote(step, time) {
         if (!this.ctx) return;
+        if (this.musicState === 'boss') {
+            this.scheduleBossNote(step, time);
+        } else {
+            this.scheduleNormalNote(step, time);
+        }
+    }
 
+    scheduleNormalNote(step, time) {
         let bassFreq = 0;
         let melodyFreq = 0;
         let playBass = false;
         let playMelody = false;
 
-        // Haunted D minor progression (Steps 0-31)
+        // Dark Atmospheric Gothic Progression (70 BPM)
         if (step >= 0 && step < 8) {
-            // Chord 1: D minor
+            // D minor
             if (step === 0) { bassFreq = 73.42; playBass = true; } // D2
             if (step === 4) { bassFreq = 110.00; playBass = true; } // A2
 
@@ -162,56 +182,127 @@ class SoundEngine {
                 melodyFreq = melodyPatterns[(step / 2) % 4];
             }
         } else if (step >= 8 && step < 16) {
-            // Chord 2: G minor
-            if (step === 8) { bassFreq = 97.99; playBass = true; } // G2
-            if (step === 12) { bassFreq = 146.83; playBass = true; } // D3
+            // Bb major
+            if (step === 8) { bassFreq = 58.27; playBass = true; } // Bb1
+            if (step === 12) { bassFreq = 87.31; playBass = true; } // F2
 
             if (step % 2 === 0) {
                 playMelody = true;
-                const melodyPatterns = [293.66, 392.00, 466.16, 392.00]; // D4, G4, Bb4, G4
+                const melodyPatterns = [293.66, 349.23, 466.16, 349.23]; // D4, F4, Bb4, F4
                 melodyFreq = melodyPatterns[((step - 8) / 2) % 4];
             }
         } else if (step >= 16 && step < 24) {
-            // Chord 3: C major (Dorian feel)
-            if (step === 16) { bassFreq = 65.41; playBass = true; } // C2
-            if (step === 20) { bassFreq = 97.99; playBass = true; } // G2
+            // G# diminished (dissonant)
+            if (step === 16) { bassFreq = 51.91; playBass = true; } // G#1
+            if (step === 20) { bassFreq = 73.42; playBass = true; } // D2
 
             if (step % 2 === 0) {
                 playMelody = true;
-                const melodyPatterns = [329.63, 392.00, 523.25, 392.00]; // E4, G4, C5, G4
+                const melodyPatterns = [246.94, 293.66, 415.30, 293.66]; // B3, D4, G#4, D4
                 melodyFreq = melodyPatterns[((step - 16) / 2) % 4];
             }
         } else if (step >= 24 && step < 32) {
-            // Chord 4: A major (Gothic harmonic resolver)
-            if (step === 24) { bassFreq = 110.00; playBass = true; } // A2
-            if (step === 28) { bassFreq = 164.81; playBass = true; } // E3
+            // A major (augmented flavor)
+            if (step === 24) { bassFreq = 55.00; playBass = true; } // A1
+            if (step === 28) { bassFreq = 82.41; playBass = true; } // E2
 
             if (step % 2 === 0) {
                 playMelody = true;
-                const melodyPatterns = [329.63, 415.30, 440.00, 329.63]; // E4, G#4, A4, E4
+                const melodyPatterns = [277.18, 329.63, 440.00, 415.30]; // C#4, E4, A4, G#4
                 melodyFreq = melodyPatterns[((step - 24) / 2) % 4];
             }
         }
 
-        // Add a quiet high voice backing note at the downbeat of each chord
+        // Faint high backing drone
         let droneFreq = 0;
         let playDrone = false;
         if (step === 0) { droneFreq = 587.33; playDrone = true; }   // D5
-        if (step === 8) { droneFreq = 783.99; playDrone = true; }   // G5
-        if (step === 16) { droneFreq = 1046.50; playDrone = true; }  // C6
-        if (step === 24) { droneFreq = 880.00; playDrone = true; }   // A5
+        if (step === 8) { droneFreq = 466.16; playDrone = true; }   // Bb4
+        if (step === 16) { droneFreq = 622.25; playDrone = true; }  // Eb5 (dissonant tension)
+        if (step === 24) { droneFreq = 554.37; playDrone = true; }  // C#5
 
         if (playBass && bassFreq > 0) {
-            this.playSynthNote(bassFreq, 'triangle', 0.12, 0.7, time); // Deep pulse
+            this.playSynthNote(bassFreq, 'triangle', 0.15, 0.9, time); // Deep dark bass
         }
 
         if (playMelody && melodyFreq > 0) {
-            // Spooky dark organ voice
-            this.playSynthNote(melodyFreq, 'sawtooth', 0.05, 0.45, time, 450);
+            // Heavily filtered sawtooth (dusty organ)
+            this.playSynthNote(melodyFreq, 'sawtooth', 0.04, 0.55, time, 320);
         }
 
         if (playDrone && droneFreq > 0) {
-            this.playSynthNote(droneFreq, 'sine', 0.02, 1.4, time);
+            this.playSynthNote(droneFreq, 'sine', 0.015, 1.8, time);
+        }
+    }
+
+    scheduleBossNote(step, time) {
+        let bassFreq = 0;
+        let melodyFreq = 0;
+        let playBass = false;
+        let playMelody = false;
+
+        // Stressful Boss Battle Progression (135 BPM, D Phrygian Dominant / Diminished)
+        // High-frequency drive: bass plays on every even step (double-time driving bassline)
+        if (step >= 0 && step < 8) {
+            // D Phrygian Dominant
+            if (step % 2 === 0) {
+                bassFreq = step % 4 === 0 ? 73.42 : 110.00; // D2 -> A2 driving
+                playBass = true;
+            }
+            // Fast stressed melody notes
+            playMelody = true;
+            const melodyPatterns = [293.66, 311.13, 369.99, 311.13, 293.66, 369.99, 440.00, 369.99]; // D4, Eb4, F#4, Eb4, D4, F#4, A4, F#4
+            melodyFreq = melodyPatterns[step % 8];
+        } else if (step >= 8 && step < 16) {
+            // Eb minor (heavy halftone stress shift)
+            if (step % 2 === 0) {
+                bassFreq = step % 4 === 0 ? 77.78 : 116.54; // Eb2 -> Bb2 driving
+                playBass = true;
+            }
+            playMelody = true;
+            const melodyPatterns = [311.13, 369.99, 466.16, 369.99, 311.13, 466.16, 554.37, 466.16]; // Eb4, Gb4, Bb4, Gb4, Eb4, Bb4, Db5, Bb4
+            melodyFreq = melodyPatterns[step % 8];
+        } else if (step >= 16 && step < 24) {
+            // G# diminished (dissonant alarm)
+            if (step % 2 === 0) {
+                bassFreq = step % 4 === 0 ? 51.91 : 77.78; // G#1 -> Eb2 driving
+                playBass = true;
+            }
+            playMelody = true;
+            const melodyPatterns = [415.30, 493.88, 587.33, 493.88, 415.30, 587.33, 739.99, 587.33]; // G#4, B4, D5, B4, G#4, D5, F#5, D5
+            melodyFreq = melodyPatterns[step % 8];
+        } else if (step >= 24 && step < 32) {
+            // D Phrygian Dominant Climax
+            if (step % 2 === 0) {
+                bassFreq = step % 4 === 0 ? 73.42 : 146.83; // D2 -> D3 driving
+                playBass = true;
+            }
+            playMelody = true;
+            const melodyPatterns = [369.99, 440.00, 523.25, 440.00, 587.33, 622.25, 739.99, 587.33]; // F#4, A4, C5, A4, D5, Eb5, F#5, D5
+            melodyFreq = melodyPatterns[step % 8];
+        }
+
+        // High alarm chime on downbeats
+        let alarmFreq = 0;
+        let playAlarm = false;
+        if (step === 0) { alarmFreq = 880.00; playAlarm = true; }    // A5
+        if (step === 8) { alarmFreq = 932.33; playAlarm = true; }    // Bb5
+        if (step === 16) { alarmFreq = 1174.66; playAlarm = true; }  // D6
+        if (step === 24) { alarmFreq = 1479.98; playAlarm = true; }  // F#6
+
+        if (playBass && bassFreq > 0) {
+            // A bit of buzzy sawtooth bass for aggressive feel
+            this.playSynthNote(bassFreq, 'sawtooth', 0.08, 0.3, time, 250);
+        }
+
+        if (playMelody && melodyFreq > 0) {
+            // Buzzy unfiltered sawtooth (frantic lead organ)
+            this.playSynthNote(melodyFreq, 'sawtooth', 0.045, 0.22, time, 1200);
+        }
+
+        if (playAlarm && alarmFreq > 0) {
+            // Stressed sine chime
+            this.playSynthNote(alarmFreq, 'sine', 0.02, 0.4, time);
         }
     }
 
