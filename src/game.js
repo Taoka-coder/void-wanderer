@@ -1588,10 +1588,8 @@ class Game {
                         
                         mob.takeDamage(proj.damage, Math.cos(angle) * kbForce, Math.sin(angle) * kbForce);
                         
-                        if (proj.type === 'magic') {
+                        if (proj.type === 'magic' || proj.type === 'lightning') {
                             proj.explode(room);
-                        } else if (proj.type === 'lightning') {
-                            spawnSparkles(proj.x, proj.y, '#22d3ee', 15);
                         } else {
                             spawnSparkles(proj.x, proj.y, '#f1f5f9', 4);
                         }
