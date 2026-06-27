@@ -73,6 +73,7 @@ export class Player {
         // Sword Slash Visual Track
         this.swordSlash = null; // { angle, progress, max }
         this.coins = 0;
+        this.specialSpellCharged = false;
     }
 
 
@@ -392,28 +393,66 @@ export class Player {
             }));
 
         } else if (this.currentWeapon === 'magic') {
-            // Spells cost 20 mana
-            if (this.mana < 20) {
-                spawnFloatingText(this.x, this.y - 15, "OUT OF MANA!", '#06b6d4', 12);
-                return false;
+            const speed = 18; // high-speed lightning bolt
+
+            if (this.specialSpellCharged) {
+                // Shoot the strong lightning combo (paid on prep, so no extra mana taken here)
+                const spreadAngle = 0.22;
+                const angles = [this.aimAngle - spreadAngle, this.aimAngle, this.aimAngle + spreadAngle];
+
+                angles.forEach(angle => {
+                    projectiles.push(new Projectile({
+                        x: this.x,
+                        y: this.y,
+                        startX: this.x,
+                        startY: this.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        damage: this.damage * 2.2, // stronger lightning combo damage
+                        range: this.range * 1.2,
+                        type: 'lightning',
+                        owner: 'player'
+                    }));
+                });
+
+                this.specialSpellCharged = false; // consume charge
+                this.shootCooldown = cooldownFrames * 1.5; // slightly longer cooldown for the combo
+                if (playAudioCallback) {
+                    playAudioCallback('spell');
+                    playAudioCallback('slash'); // double sound effect for punchiness
+                }
+                
+                // Spawn a visual combo shockwave of particles around the player
+                for (let i = 0; i < 15; i++) {
+                    const rAngle = Math.random() * Math.PI * 2;
+                    const rDist = 15 + Math.random() * 25;
+                    spawnSparkles(this.x + Math.cos(rAngle) * rDist, this.y + Math.sin(rAngle) * rDist, '#22d3ee', 2);
+                }
+            } else {
+                // Normal lightning shot - consumes 20 mana
+                if (this.mana < 20) {
+                    spawnFloatingText(this.x, this.y - 15, "OUT OF MANA!", '#06b6d4', 12);
+                    return false;
+                }
+
+                this.mana -= 20;
+                this.manaRegenDelay = 3600; // delay regen
+                this.shootCooldown = cooldownFrames * 1.0;
+                if (playAudioCallback) playAudioCallback('spell');
+
+                projectiles.push(new Projectile({
+                    x: this.x,
+                    y: this.y,
+                    startX: this.x,
+                    startY: this.y,
+                    vx: Math.cos(this.aimAngle) * speed,
+                    vy: Math.sin(this.aimAngle) * speed,
+                    damage: this.damage * 1.4, // balanced normal lightning damage
+                    range: this.range * 1.0,
+                    type: 'lightning',
+                    owner: 'player'
+                }));
             }
-
-            this.mana -= 20;
-            this.manaRegenDelay = 3600; // 1 minute cooldown (60s * 60 FPS)
-            this.shootCooldown = cooldownFrames * 1.2;
-            if (playAudioCallback) playAudioCallback('spell');
-
-            const speed = 5.5;
-            projectiles.push(new Projectile({
-                x: this.x,
-                y: this.y,
-                vx: Math.cos(this.aimAngle) * speed,
-                vy: Math.sin(this.aimAngle) * speed,
-                damage: this.damage * 1.8, // Magic spell deals heavy splash damage
-                range: this.range * 0.9,
-                type: 'magic',
-                owner: 'player'
-            }));
         }
         return true;
     }
@@ -474,6 +513,34 @@ export class Player {
         const origY = this.y;
         this.x = 0;
         this.y = 0;
+
+        // Draw Special Spell Aura if charged
+        if (this.specialSpellCharged && this.currentWeapon === 'magic') {
+            ctx.save();
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 1.8;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#06b6d4';
+            
+            // Rotating circle
+            const rot = (Date.now() * 0.004) % (Math.PI * 2);
+            ctx.rotate(rot);
+            
+            // Draw a neat electric magic circle pattern
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius + 6, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Swirling sparks / spikes
+            ctx.beginPath();
+            for (let i = 0; i < 4; i++) {
+                const spAngle = (Math.PI / 2) * i;
+                ctx.moveTo(Math.cos(spAngle) * (this.radius + 1), Math.sin(spAngle) * (this.radius + 1));
+                ctx.lineTo(Math.cos(spAngle) * (this.radius + 10), Math.sin(spAngle) * (this.radius + 10));
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
 
         // Draw Player body
         // Custom procedurally styled human character in black-metal 18th century cuirassier armour
@@ -808,18 +875,23 @@ export class Projectile {
         this.vy = options.vy;
         this.damage = options.damage;
         this.radius = options.type === 'magic' ? 12 : 
+                      (options.type === 'lightning' ? 10 : 
                       (options.type === 'arrow' ? 4 : 
                       (options.type === 'webball' ? 10 : 
                       (options.type === 'homing_orb' ? 8 : 
                       (options.type === 'fireball' ? 7 : 
                       (options.type === 'wood_shard' ? 4 : 
                       (options.type === 'bone_shard' ? 4 : 
-                      (options.type === 'shadow_bolt' ? 6 : 6)))))));
-        this.type = options.type; // 'arrow', 'magic', 'bullet', 'webball', 'homing_orb', 'fireball', 'wood_shard', 'bone_shard', 'shadow_bolt'
+                      (options.type === 'shadow_bolt' ? 6 : 6))))))));
+        this.type = options.type; // 'arrow', 'magic', 'lightning', etc.
         this.owner = options.owner; // 'player', 'enemy'
         this.range = options.range;
         this.distanceTraveled = 0;
         this.angle = Math.atan2(this.vy, this.vx);
+        
+        // Track start position for drawing lightning arcs
+        this.startX = options.startX !== undefined ? options.startX : this.x;
+        this.startY = options.startY !== undefined ? options.startY : this.y;
     }
 
     update(obstacles, currentRoom) {
@@ -851,6 +923,8 @@ export class Projectile {
             
             if (this.type === 'magic') {
                 this.explode(currentRoom);
+            } else if (this.type === 'lightning') {
+                spawnSparkles(this.x, this.y, '#22d3ee', 12);
             }
             if (this.type === 'webball' && currentRoom) {
                 currentRoom.obstacles.push({
@@ -890,6 +964,8 @@ export class Projectile {
 
                     if (this.type === 'magic') {
                         this.explode(currentRoom);
+                    } else if (this.type === 'lightning') {
+                        spawnSparkles(this.x, this.y, '#22d3ee', 12);
                     } else if (this.type === 'webball' && currentRoom) {
                         currentRoom.obstacles.push({
                             x: this.x,
@@ -914,6 +990,8 @@ export class Projectile {
                     spawnSmoke(obs.x, obs.y, 4);
                     if (this.type === 'magic') {
                         this.explode(currentRoom);
+                    } else if (this.type === 'lightning') {
+                        spawnSparkles(this.x, this.y, '#22d3ee', 12);
                     }
                     return false;
                 }
@@ -1035,6 +1113,70 @@ export class Projectile {
             ctx.beginPath();
             ctx.arc(this.x - 3, this.y - 3, 3, 0, Math.PI*2);
             ctx.fill();
+
+        } else if (this.type === 'lightning') {
+            ctx.save();
+            const x1 = this.startX;
+            const y1 = this.startY;
+            const x2 = this.x;
+            const y2 = this.y;
+
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist > 5) {
+                ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#06b6d4';
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                
+                const steps = Math.max(2, Math.floor(dist / 22));
+                const points = [];
+                points.push({ x: x1, y: y1 });
+                
+                for (let i = 1; i < steps; i++) {
+                    const t = i / steps;
+                    let px = x1 + dx * t;
+                    let py = y1 + dy * t;
+                    
+                    const nx = -dy / dist;
+                    const ny = dx / dist;
+                    const offset = (Math.random() - 0.5) * 14;
+                    
+                    px += nx * offset;
+                    py += ny * offset;
+                    
+                    points.push({ x: px, y: py });
+                    ctx.lineTo(px, py);
+                }
+                points.push({ x: x2, y: y2 });
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.stroke();
+            }
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#22d3ee';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
 
         } else if (this.type === 'bullet') {
             // Red fireballs fired by mobs
