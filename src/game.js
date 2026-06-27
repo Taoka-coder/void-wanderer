@@ -1885,8 +1885,8 @@ class Game {
         if (!room) return;
 
         this.ctx.save();
-        this.ctx.translate(80, 100);
-        this.ctx.scale(0.80, 0.80);
+        this.ctx.translate(100, 140);
+        this.ctx.scale(0.75, 0.75);
 
 
         // Render Room Floor (Dark flagstone brick dungeon tiles)
