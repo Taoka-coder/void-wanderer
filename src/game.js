@@ -8,9 +8,143 @@ import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=24';
 import { ShopkeeperNPC } from './shop.js?v=24';
 import { audio } from './audio.js?v=24';
 
-
-
-
+const BOSS_DIALOGUES = {
+    'THE GOLEM': {
+        avatar: '🗿',
+        name: 'THE GOLEM',
+        dialogue: [
+            { speaker: 'boss', text: "Intruder... You disturb the sanctuary of the stone root." },
+            { speaker: 'player', text: "I only seek passage. Step aside, stone guardian." },
+            { speaker: 'boss', text: "None pass. The forest demands your dust." }
+        ]
+    },
+    'GIANT SPIDER': {
+        avatar: '🕸️',
+        name: 'GIANT SPIDER',
+        dialogue: [
+            { speaker: 'boss', text: "Ssss... Fresh warmth crawls into my web." },
+            { speaker: 'player', text: "Keep your fangs to yourself, beast." },
+            { speaker: 'boss', text: "You will hang silent in my cocoon forever." }
+        ]
+    },
+    'ANCIENT TREANT': {
+        avatar: '🌳',
+        name: 'ANCIENT TREANT',
+        dialogue: [
+            { speaker: 'boss', text: "The wood remembers your kind. Axe-bearers. Fire-bringers." },
+            { speaker: 'player', text: "I bring no fire, only steel for those who block my way." },
+            { speaker: 'boss', text: "Then let my roots bury your steel." }
+        ]
+    },
+    'SHADOW KNIGHT': {
+        avatar: '🛡️',
+        name: 'SHADOW KNIGHT',
+        dialogue: [
+            { speaker: 'boss', text: "Yield, mortal. You tread upon the shadow realm of the fallen." },
+            { speaker: 'player', text: "A knight without a master is just a hollow shell." },
+            { speaker: 'boss', text: "My blade shall teach you respect for the dark!" }
+        ]
+    },
+    'PHANTOM WITCH': {
+        avatar: '🔮',
+        name: 'PHANTOM WITCH',
+        dialogue: [
+            { speaker: 'boss', text: "Hehehe... another lamb straying into the twilight." },
+            { speaker: 'player', text: "Your illusions won't save you, witch." },
+            { speaker: 'boss', text: "Illusions? No, dear child... shadow is my absolute truth." }
+        ]
+    },
+    'DARK GARGOYLE': {
+        avatar: '🦇',
+        name: 'DARK GARGOYLE',
+        dialogue: [
+            { speaker: 'boss', text: "Krrr... From stone I awaken to crush your bones." },
+            { speaker: 'player', text: "Go back to sleep, flying pest." },
+            { speaker: 'boss', text: "My wings shall carry your remnants to the peaks!" }
+        ]
+    },
+    'NECROMANCER': {
+        avatar: '💀',
+        name: 'NECROMANCER',
+        dialogue: [
+            { speaker: 'boss', text: "Ah, a fine addition to my army of the dead." },
+            { speaker: 'player', text: "You'll have to die first to make me one." },
+            { speaker: 'boss', text: "Death is but a transition... one I shall grant you now!" }
+        ]
+    },
+    'BONE COLOSSUS': {
+        avatar: '☠️',
+        name: 'BONE COLOSSUS',
+        dialogue: [
+            { speaker: 'boss', text: "THE GRAVE CALLS FOR YOU." },
+            { speaker: 'player', text: "I'm not ready to be buried yet." },
+            { speaker: 'boss', text: "ALL SHALL BE CRUSHED." }
+        ]
+    },
+    'PLAGUE DOCTOR': {
+        avatar: '🎭',
+        name: 'PLAGUE DOCTOR',
+        dialogue: [
+            { speaker: 'boss', text: "Your soul is infected. I must purge the sickness." },
+            { speaker: 'player', text: "You look more like the disease than the cure." },
+            { speaker: 'boss', text: "A painful cure is still a cure... hold still!" }
+        ]
+    },
+    'FIRE DEMON': {
+        avatar: '😈',
+        name: 'FIRE DEMON',
+        dialogue: [
+            { speaker: 'boss', text: "Mortal flesh burns so easily. Welcome to your pyre." },
+            { speaker: 'player', text: "I've faced worse heat than this." },
+            { speaker: 'boss', text: "Then let the inferno consume your arrogance!" }
+        ]
+    },
+    'INFERNAL DRAKE': {
+        avatar: '🐉',
+        name: 'INFERNAL DRAKE',
+        dialogue: [
+            { speaker: 'boss', text: "Gyaaaaar! You dare enter the dragon's hearth?" },
+            { speaker: 'player', text: "Your fire is bright, but my focus is sharper." },
+            { speaker: 'boss', text: "Ash and soot shall be all that remains of you!" }
+        ]
+    },
+    'MAGMA TITAN': {
+        avatar: '🌋',
+        name: 'MAGMA TITAN',
+        dialogue: [
+            { speaker: 'boss', text: "THE CORE AWAKENS. CRUSH THE FLESH." },
+            { speaker: 'player', text: "You're just walking rock. I've broken stone before." },
+            { speaker: 'boss', text: "MELT IN THE FIRES OF THE EARTH!" }
+        ]
+    },
+    'THE VOID EYE': {
+        avatar: '👁️',
+        name: 'THE VOID EYE',
+        dialogue: [
+            { speaker: 'boss', text: "We see you. We know your past. We know your doom." },
+            { speaker: 'player', text: "Stare all you want. I came here to win." },
+            { speaker: 'boss', text: "You cannot defeat what has already observed your end." }
+        ]
+    },
+    'COSMIC HORROR': {
+        avatar: '🦑',
+        name: 'COSMIC HORROR',
+        dialogue: [
+            { speaker: 'boss', text: "Your mind is fragile. Peer into the infinite madness." },
+            { speaker: 'player', text: "I've seen the depths of the void. You don't scare me." },
+            { speaker: 'boss', text: "Let the stars weep as your sanity shatters..." }
+        ]
+    },
+    'SHADOW OVERLORD': {
+        avatar: '👑',
+        name: 'SHADOW OVERLORD',
+        dialogue: [
+            { speaker: 'boss', text: "So, the wanderer finally reaches the throne of the void." },
+            { speaker: 'player', text: "Your reign ends here, Overlord." },
+            { speaker: 'boss', text: "This is not an end. It is the void's eternal embrace." }
+        ]
+    }
+};
 
 class Game {
     constructor() {
@@ -30,7 +164,8 @@ class Game {
             SHOP: 'shop',
             GAMEOVER: 'gameover',
             VICTORY: 'victory',
-            SETTINGS: 'settings'
+            SETTINGS: 'settings',
+            DIALOGUE: 'dialogue'
         };
         this.currentState = this.states.START;
         this.previousState = this.states.START;
@@ -96,6 +231,16 @@ class Game {
         
         const handleKeyDown = (e) => {
             try {
+                // If in dialogue mode, intercept space/enter/arrow keys to advance text
+                if (this.currentState === this.states.DIALOGUE) {
+                    if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter' || e.code === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.advanceBossDialogue();
+                    }
+                    return;
+                }
+
                 // If rebinding, intercept and record key
                 if (this.rebindingAction) {
                     e.preventDefault();
@@ -343,6 +488,11 @@ class Game {
         document.getElementById('slot-sword').addEventListener('click', () => this.selectWeapon('sword'));
         document.getElementById('slot-bow').addEventListener('click', () => this.selectWeapon('bow'));
         document.getElementById('slot-magic').addEventListener('click', () => this.selectWeapon('magic'));
+
+        // Boss Dialogue UI click listener
+        document.getElementById('btn-boss-dialogue-next').addEventListener('click', () => {
+            this.advanceBossDialogue();
+        });
     }
 
     startGame() {
@@ -752,6 +902,14 @@ class Game {
 
         // Re-render minimap
         this.dungeon.drawMinimap(this.minimapCtx);
+
+        // Trigger boss dialogue if room is Uncleared Boss Room
+        if (targetRoom.type === ROOM_TYPES.BOSS && !targetRoom.cleared) {
+            const boss = targetRoom.mobs.find(m => m instanceof Boss);
+            if (boss) {
+                this.startBossDialogue(boss.name);
+            }
+        }
     }
 
     updateHUDHealth() {
@@ -815,6 +973,74 @@ class Game {
         const numeral = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
         const display = numeral[this.level - 1] || `DEPTH ${this.level}`;
         document.getElementById('level-display').textContent = `DEPTH ${display}`;
+    }
+
+    startBossDialogue(bossName) {
+        const dialogData = BOSS_DIALOGUES[bossName];
+        if (!dialogData) return;
+
+        this.activeDialogue = dialogData;
+        this.dialogueIndex = 0;
+
+        this.previousState = this.currentState;
+        this.currentState = this.states.DIALOGUE;
+
+        audio.stopMusic();
+
+        this.renderDialogueLine();
+
+        document.getElementById('boss-dialogue-overlay').classList.remove('hidden');
+    }
+
+    renderDialogueLine() {
+        if (!this.activeDialogue) return;
+        const line = this.activeDialogue.dialogue[this.dialogueIndex];
+        const avatarEl = document.getElementById('boss-dialogue-avatar');
+        const nameEl = document.getElementById('boss-dialogue-name');
+        const bossTextEl = document.getElementById('boss-dialogue-text');
+        const playerTextEl = document.getElementById('player-dialogue-text');
+
+        avatarEl.textContent = this.activeDialogue.avatar;
+        nameEl.textContent = this.activeDialogue.name || "THE BOSS";
+
+        if (line.speaker === 'boss') {
+            bossTextEl.textContent = `"${line.text}"`;
+            bossTextEl.style.opacity = 1;
+            playerTextEl.textContent = '';
+            playerTextEl.style.opacity = 0;
+        } else {
+            bossTextEl.textContent = '';
+            bossTextEl.style.opacity = 0;
+            playerTextEl.textContent = `"${line.text}"`;
+            playerTextEl.style.opacity = 1;
+        }
+        
+        audio.play('pickup');
+    }
+
+    advanceBossDialogue() {
+        if (!this.activeDialogue) return;
+
+        this.dialogueIndex++;
+        if (this.dialogueIndex < this.activeDialogue.dialogue.length) {
+            this.renderDialogueLine();
+        } else {
+            this.closeBossDialogue();
+        }
+    }
+
+    closeBossDialogue() {
+        this.activeDialogue = null;
+        this.dialogueIndex = 0;
+
+        document.getElementById('boss-dialogue-overlay').classList.add('hidden');
+
+        this.currentState = this.states.PLAYING;
+        audio.startMusic();
+
+        if (this.canvas) {
+            this.canvas.focus();
+        }
     }
 
      handleGameOver() {
