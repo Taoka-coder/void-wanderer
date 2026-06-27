@@ -289,6 +289,33 @@ class Game {
                     if (e.code === 'Digit2' || e.key === '2') this.selectWeapon('bow');
                     if (e.code === 'Digit3' || e.key === '3') this.selectWeapon('magic');
                     
+                    // Special Spell charge trigger on "F"
+                    if (e.key === 'f' || e.key === 'F' || e.code === 'KeyF') {
+                        if (this.player.currentWeapon === 'magic') {
+                            if (!this.player.specialSpellCharged) {
+                                if (this.player.mana >= 50) {
+                                    this.player.mana -= 50;
+                                    this.player.manaRegenDelay = 3600; // Delay mana regeneration
+                                    this.player.specialSpellCharged = true;
+                                    
+                                    audio.play('spell');
+                                    spawnSparkles(this.player.x, this.player.y, '#22d3ee', 25);
+                                    spawnFloatingText(this.player.x, this.player.y - 30, "LIGHTNING CHARGED!", '#22d3ee', 14);
+                                    
+                                    this.updateHUDHealth();
+                                    this.updateHUDStats();
+                                } else {
+                                    spawnFloatingText(this.player.x, this.player.y - 30, "OUT OF MANA (Need 50)!", '#06b6d4', 12);
+                                }
+                            } else {
+                                spawnFloatingText(this.player.x, this.player.y - 30, "ALREADY CHARGED!", '#22d3ee', 12);
+                            }
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return;
+                        }
+                    }
+                    
                     // Interact check using rebindable key
                     const interactKey = this.keyBinds.interact.toLowerCase();
                     const isInteractPressed = (e.key && e.key.toLowerCase() === interactKey) || 
@@ -1563,6 +1590,8 @@ class Game {
                         
                         if (proj.type === 'magic') {
                             proj.explode(room);
+                        } else if (proj.type === 'lightning') {
+                            spawnSparkles(proj.x, proj.y, '#22d3ee', 15);
                         } else {
                             spawnSparkles(proj.x, proj.y, '#f1f5f9', 4);
                         }
