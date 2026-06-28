@@ -283,6 +283,16 @@ class Game {
                     this.keys[keyLower] = true;
                 }
                 
+                // Developer debug kill key on "K"
+                if (e.key === 'k' || e.key === 'K' || e.code === 'KeyK') {
+                    const room = this.dungeon ? this.dungeon.activeRoom : null;
+                    if (this.currentState === this.states.PLAYING && room && room.mobs) {
+                        room.mobs = [];
+                        spawnSparkles(this.player.x, this.player.y, '#ef4444', 20);
+                        spawnFloatingText(this.player.x, this.player.y - 30, "DEBUG: ENEMIES BANISHED", '#ef4444', 12);
+                    }
+                }
+
                 // Switch weapons (handle both code and key fallback)
                 if (this.currentState === this.states.PLAYING) {
                     if (e.code === 'Digit1' || e.key === '1') this.selectWeapon('sword');
