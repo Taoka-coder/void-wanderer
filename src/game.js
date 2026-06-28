@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=33';
-import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=33';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=33';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=33';
-import { ShopkeeperNPC } from './shop.js?v=33';
-import { audio } from './audio.js?v=33';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=34';
+import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=34';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=34';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=34';
+import { ShopkeeperNPC } from './shop.js?v=34';
+import { audio } from './audio.js?v=34';
 
 const BOSS_DIALOGUES = {
     'THE GOLEM': {
@@ -1209,8 +1209,8 @@ class Game {
                 const unowned = ARTIFACTS_DATABASE.filter(art => !this.player.hasArtifact(art.id));
                 const pool = unowned.length > 0 ? unowned : ARTIFACTS_DATABASE;
                 const chosenArt = pool[Math.floor(Math.random() * pool.length)];
-                room.drops.push(new Drop(400, 265, 'artifact', chosenArt));
-                spawnSparkles(400, 265, chosenArt.color || '#a855f7', 15);
+                room.drops.push(new Drop(400, 300, 'artifact', chosenArt));
+                spawnSparkles(400, 300, chosenArt.color || '#a855f7', 15);
             }
         }
 
@@ -1798,8 +1798,8 @@ class Game {
                     const unowned = ARTIFACTS_DATABASE.filter(art => !this.player.hasArtifact(art.id));
                     const pool = unowned.length > 0 ? unowned : ARTIFACTS_DATABASE;
                     const chosenArt = pool[Math.floor(Math.random() * pool.length)];
-                    room.drops.push(new Drop(400, 265, 'artifact', chosenArt));
-                    spawnSparkles(400, 265, chosenArt.color || '#a855f7', 15);
+                    room.drops.push(new Drop(400, 300, 'artifact', chosenArt));
+                    spawnSparkles(400, 300, chosenArt.color || '#a855f7', 15);
                 }
             }
 
@@ -1813,6 +1813,33 @@ class Game {
         } else {
             roomStatusEl.textContent = "HOSTILE AREA LOCKDOWN";
             roomStatusEl.classList.add('active');
+        }
+
+        // Description popup helper when standing near artifact
+        let nearArtifact = null;
+        for (const drop of room.drops) {
+            if (drop.type === 'artifact') {
+                const dx = this.player.x - drop.x;
+                const dy = this.player.y - drop.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 80) {
+                    nearArtifact = drop.artifactData;
+                    break;
+                }
+            }
+        }
+
+        const popupEl = document.getElementById('artifact-popup');
+        if (popupEl) {
+            if (nearArtifact) {
+                document.getElementById('popup-name').textContent = nearArtifact.name;
+                document.getElementById('popup-desc').textContent = nearArtifact.description;
+                const iconEl = popupEl.querySelector('.popup-icon');
+                if (iconEl) iconEl.textContent = nearArtifact.emoji;
+                popupEl.classList.remove('hidden');
+            } else {
+                popupEl.classList.add('hidden');
+            }
         }
 
         // 7. Update Drops (Loot Pickups)
@@ -2616,7 +2643,7 @@ class Game {
             
             // Outer runic ring
             this.ctx.beginPath();
-            this.ctx.arc(400, 265, 55, 0, Math.PI * 2);
+            this.ctx.arc(400, 300, 55, 0, Math.PI * 2);
             this.ctx.stroke();
             
             // Inner runic ring
@@ -2624,7 +2651,7 @@ class Game {
             this.ctx.shadowColor = '#22d3ee';
             this.ctx.lineWidth = 1.5;
             this.ctx.beginPath();
-            this.ctx.arc(400, 265, 38, 0, Math.PI * 2);
+            this.ctx.arc(400, 300, 38, 0, Math.PI * 2);
             this.ctx.stroke();
 
             // Runic cross beams
@@ -2632,8 +2659,8 @@ class Game {
             this.ctx.beginPath();
             for (let i = 0; i < 4; i++) {
                 const angle = (Math.PI / 2) * i;
-                this.ctx.moveTo(400 + Math.cos(angle) * 15, 265 + Math.sin(angle) * 15);
-                this.ctx.lineTo(400 + Math.cos(angle) * 38, 265 + Math.sin(angle) * 38);
+                this.ctx.moveTo(400 + Math.cos(angle) * 15, 300 + Math.sin(angle) * 15);
+                this.ctx.lineTo(400 + Math.cos(angle) * 38, 300 + Math.sin(angle) * 38);
             }
             this.ctx.stroke();
             this.ctx.restore();
