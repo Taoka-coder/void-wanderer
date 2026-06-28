@@ -5054,6 +5054,9 @@ export class Drop {
             } else if (this.type === 'artifact') {
                 player.addArtifact(this.artifactData);
                 this.pickedUp = true;
+                if (window.game) {
+                    window.game.artifactFoundThisLevel = true;
+                }
                 audio.play('gamble_end');
                 spawnSparkles(player.x, player.y, this.artifactData.color || '#a855f7', 20);
                 spawnFloatingText(player.x, player.y - 25, `${this.artifactData.name} FOUND!`, this.artifactData.color || '#a855f7', 16, true);
