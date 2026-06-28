@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=24';
-import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=24';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=24';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=24';
-import { ShopkeeperNPC } from './shop.js?v=24';
-import { audio } from './audio.js?v=24';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=33';
+import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=33';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=33';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=33';
+import { ShopkeeperNPC } from './shop.js?v=33';
+import { audio } from './audio.js?v=33';
 
 const BOSS_DIALOGUES = {
     'THE GOLEM': {
@@ -565,6 +565,7 @@ class Game {
         clearParticles();
         this.mysteryManInteractedThisLevel = false;
         this.shopkeeperInteractedThisLevel = false;
+        this.artifactFoundThisLevel = false;
         
         // Reset player positions to start room center
         this.player.x = 400;
@@ -1201,6 +1202,18 @@ class Game {
             this.spawnRoomMobs();
         }
 
+        // Artifact room safety spawn helper (in case drops were blocked by other loot on clear)
+        if (room.type === ROOM_TYPES.ARTIFACT && room.cleared && !this.artifactFoundThisLevel) {
+            const hasArtifactDrop = room.drops.some(d => d.type === 'artifact');
+            if (!hasArtifactDrop) {
+                const unowned = ARTIFACTS_DATABASE.filter(art => !this.player.hasArtifact(art.id));
+                const pool = unowned.length > 0 ? unowned : ARTIFACTS_DATABASE;
+                const chosenArt = pool[Math.floor(Math.random() * pool.length)];
+                room.drops.push(new Drop(400, 265, 'artifact', chosenArt));
+                spawnSparkles(400, 265, chosenArt.color || '#a855f7', 15);
+            }
+        }
+
         // 3. Update Player
         this.player.update(this.keys, this.mouse, room.obstacles, room, this.keyBinds);
         
@@ -1779,12 +1792,15 @@ class Game {
             }
 
             // If Artifact Room is cleared, spawn a random unowned artifact pedestal in the center
-            if (room.type === ROOM_TYPES.ARTIFACT && room.drops.length === 0) {
-                const unowned = ARTIFACTS_DATABASE.filter(art => !this.player.hasArtifact(art.id));
-                const pool = unowned.length > 0 ? unowned : ARTIFACTS_DATABASE;
-                const chosenArt = pool[Math.floor(Math.random() * pool.length)];
-                room.drops.push(new Drop(400, 265, 'artifact', chosenArt));
-                spawnSparkles(400, 265, chosenArt.color || '#a855f7', 15);
+            if (room.type === ROOM_TYPES.ARTIFACT) {
+                const hasArtifactDrop = room.drops.some(d => d.type === 'artifact');
+                if (!hasArtifactDrop) {
+                    const unowned = ARTIFACTS_DATABASE.filter(art => !this.player.hasArtifact(art.id));
+                    const pool = unowned.length > 0 ? unowned : ARTIFACTS_DATABASE;
+                    const chosenArt = pool[Math.floor(Math.random() * pool.length)];
+                    room.drops.push(new Drop(400, 265, 'artifact', chosenArt));
+                    spawnSparkles(400, 265, chosenArt.color || '#a855f7', 15);
+                }
             }
 
         }
