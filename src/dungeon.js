@@ -12,7 +12,8 @@ export const ROOM_TYPES = {
     TROPHY: 'trophy',
     BOSS: 'boss',
     MYSTERY: 'mystery',
-    SHOP: 'shop'
+    SHOP: 'shop',
+    ARTIFACT: 'artifact'
 };
 
 export class Room {
@@ -40,8 +41,8 @@ export class Room {
     }
 
     generateObstacles() {
-        if (this.type === ROOM_TYPES.START || this.type === ROOM_TYPES.TROPHY || this.type === ROOM_TYPES.MYSTERY || this.type === ROOM_TYPES.BOSS) {
-            // Special rooms keep clean centers, boss room is empty except for boss
+        if (this.type === ROOM_TYPES.START || this.type === ROOM_TYPES.TROPHY || this.type === ROOM_TYPES.MYSTERY || this.type === ROOM_TYPES.BOSS || this.type === ROOM_TYPES.ARTIFACT) {
+            // Special rooms keep clean centers
             return;
         }
 
@@ -232,13 +233,11 @@ export class Dungeon {
         // 2. Select Trophy Room from remaining dead-ends (or next furthest)
         let trophyRoomObj;
         if (deadEnds.length > 0) {
-            // Pick a random dead-end
             const randIdx = Math.floor(Math.random() * deadEnds.length);
             trophyRoomObj = deadEnds.splice(randIdx, 1)[0];
             trophyRoomObj.type = ROOM_TYPES.TROPHY;
             trophyRoomObj.cleared = true;
         } else {
-            // Pick next furthest room
             trophyRoomObj = distances[1].room;
             trophyRoomObj.type = ROOM_TYPES.TROPHY;
             trophyRoomObj.cleared = true;
@@ -252,7 +251,6 @@ export class Dungeon {
             mysteryRoomObj.type = ROOM_TYPES.MYSTERY;
             mysteryRoomObj.cleared = true;
         } else {
-            // Find next furthest available room
             for (let i = 2; i < distances.length; i++) {
                 const r = distances[i].room;
                 if (r !== bossRoomObj && r !== trophyRoomObj) {
@@ -264,11 +262,30 @@ export class Dungeon {
             }
         }
 
-        // 4. Select Shop Room from remaining basic rooms
+        // 4. Select Artifact Room from remaining dead-ends (or next furthest)
+        let artifactRoomObj;
+        if (deadEnds.length > 0) {
+            const randIdx = Math.floor(Math.random() * deadEnds.length);
+            artifactRoomObj = deadEnds.splice(randIdx, 1)[0];
+            artifactRoomObj.type = ROOM_TYPES.ARTIFACT;
+            artifactRoomObj.cleared = false;
+        } else {
+            for (let i = 2; i < distances.length; i++) {
+                const r = distances[i].room;
+                if (r !== bossRoomObj && r !== trophyRoomObj && r !== mysteryRoomObj) {
+                    artifactRoomObj = r;
+                    artifactRoomObj.type = ROOM_TYPES.ARTIFACT;
+                    artifactRoomObj.cleared = false;
+                    break;
+                }
+            }
+        }
+
+        // 5. Select Shop Room from remaining basic rooms
         let shopRoomObj = null;
         for (const room of this.roomsList) {
             if (room.gridX === START_X && room.gridY === START_Y) continue;
-            if (room !== bossRoomObj && room !== trophyRoomObj && room !== mysteryRoomObj && room.type === ROOM_TYPES.BASIC) {
+            if (room !== bossRoomObj && room !== trophyRoomObj && room !== mysteryRoomObj && room !== artifactRoomObj && room.type === ROOM_TYPES.BASIC) {
                 shopRoomObj = room;
                 shopRoomObj.type = ROOM_TYPES.SHOP;
                 shopRoomObj.cleared = true;
@@ -276,11 +293,11 @@ export class Dungeon {
             }
         }
         
-        // Fallback just in case no basic room fits
+        // Fallback for Shop Room
         if (!shopRoomObj) {
             for (const room of this.roomsList) {
                 if (room.gridX === START_X && room.gridY === START_Y) continue;
-                if (room !== bossRoomObj && room !== trophyRoomObj && room !== mysteryRoomObj) {
+                if (room !== bossRoomObj && room !== trophyRoomObj && room !== mysteryRoomObj && room !== artifactRoomObj) {
                     shopRoomObj = room;
                     shopRoomObj.type = ROOM_TYPES.SHOP;
                     shopRoomObj.cleared = true;
@@ -289,7 +306,7 @@ export class Dungeon {
             }
         }
 
-        // 5. Remaining rooms are either basic (combat) or empty (obstacles only)
+        // 6. Remaining rooms are either basic (combat) or empty (obstacles only)
         for (const room of this.roomsList) {
             if (room.type === ROOM_TYPES.BASIC) {
                 // 30% chance to be an empty room with obstacles
@@ -369,6 +386,8 @@ export class Dungeon {
                         ctx.fillStyle = '#a855f7'; // Mystery Man Room: Royal Purple
                     } else if (room.type === ROOM_TYPES.SHOP) {
                         ctx.fillStyle = '#f59e0b'; // Shop Room: Gold Amber
+                    } else if (room.type === ROOM_TYPES.ARTIFACT) {
+                        ctx.fillStyle = '#14b8a6'; // Artifact Room: Emerald Teal
                     } else if (room.cleared) {
                         ctx.fillStyle = '#f1f5f9'; // Cleared/secured room: Sleek White/Silver
                     } else {
@@ -399,9 +418,10 @@ export class Dungeon {
                 } else if ((isBoss && showBoss) || (isAdjacentToVisited && !isBoss)) {
                     const isShop = room.type === ROOM_TYPES.SHOP;
                     const isMystery = room.type === ROOM_TYPES.MYSTERY;
+                    const isArtifact = room.type === ROOM_TYPES.ARTIFACT;
                     
                     // Revealed adjacent room (or adjacent boss room): Draw placeholder thick border
-                    ctx.strokeStyle = isBoss ? '#ef4444' : (isShop ? '#f59e0b' : (isMystery ? '#a855f7' : 'rgba(255, 255, 255, 0.55)'));
+                    ctx.strokeStyle = isBoss ? '#ef4444' : (isShop ? '#f59e0b' : (isMystery ? '#a855f7' : (isArtifact ? '#14b8a6' : 'rgba(255, 255, 255, 0.55)')));
                     ctx.lineWidth = 1.5;
                     ctx.strokeRect(rx + 0.5, ry + 0.5, roomSize - 1, roomSize - 1);
                     
@@ -413,6 +433,9 @@ export class Dungeon {
                         ctx.fillRect(rx + roomSize / 2 - 1.5, ry + roomSize / 2 - 1.5, 3, 3);
                     } else if (isMystery) {
                         ctx.fillStyle = '#a855f7';
+                        ctx.fillRect(rx + roomSize / 2 - 1.5, ry + roomSize / 2 - 1.5, 3, 3);
+                    } else if (isArtifact) {
+                        ctx.fillStyle = '#14b8a6';
                         ctx.fillRect(rx + roomSize / 2 - 1.5, ry + roomSize / 2 - 1.5, 3, 3);
                     }
                 }
