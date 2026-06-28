@@ -2,7 +2,7 @@
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
 import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=24';
-import { Player, Enemy, Boss, Drop } from './entities.js?v=24';
+import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=24';
 import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=24';
 import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=24';
 import { ShopkeeperNPC } from './shop.js?v=24';
@@ -559,6 +559,12 @@ class Game {
         // Reset player positions to start room center
         this.player.x = 400;
         this.player.y = 300;
+
+        if (this.player.hasArtifact('holy_grail')) {
+            this.player.health = this.player.maxHealth;
+            spawnSparkles(400, 300, '#fbbf24', 20);
+            spawnFloatingText(400, 270, "GRAIL RESTORATION!", '#fbbf24', 16, true);
+        }
         
         this.dungeon.activeRoom.visited = true;
         this.setupMysteryManNPC();
@@ -875,6 +881,38 @@ class Game {
             room.bossVariant = boss.bossVariant;
             room.mobs.push(boss);
             spawnSmoke(400, 260, 15);
+        } else if (room.type === ROOM_TYPES.ARTIFACT) {
+            // Spawn 3-5 beefier guardians
+            const guardianCount = Math.floor(Math.random() * 3) + 3; // 3 to 5
+            const levelMultiplier = 1 + (this.level - 1) * 0.12;
+            const guardianMultiplier = levelMultiplier * 1.5; // 50% stronger
+            
+            const guardianTypes = {
+                1: 'forest_sprout',
+                2: 'shadow_chaser',
+                3: 'death_chaser',
+                4: 'fire_chaser',
+                5: 'void_chaser'
+            };
+            const guardianType = guardianTypes[Math.min(this.level, 5)] || 'chaser';
+
+            for (let i = 0; i < guardianCount; i++) {
+                let sx, sy, dist;
+                do {
+                    sx = 150 + Math.random() * 500;
+                    sy = 150 + Math.random() * 300;
+                    const dx = sx - this.player.x;
+                    const dy = sy - this.player.y;
+                    dist = Math.sqrt(dx*dx + dy*dy);
+                } while (dist < 120);
+
+                const guard = new Enemy(sx, sy, guardianType, guardianMultiplier);
+                guard.radius = guard.radius * 1.25; // physically larger
+                guard.maxHealth = Math.round(guard.maxHealth * 1.3);
+                guard.health = guard.maxHealth;
+                room.mobs.push(guard);
+                spawnSmoke(sx, sy, 8);
+            }
         }
     }
 
@@ -989,7 +1027,7 @@ class Game {
 
 
     updateHUDStats() {
-        document.getElementById('stat-damage').textContent = this.player.damage.toFixed(1);
+        document.getElementById('stat-damage').textContent = this.player.getDamage().toFixed(1);
         document.getElementById('stat-ats').textContent = this.player.attackSpeed.toFixed(2);
         document.getElementById('stat-speed').textContent = this.player.speed.toFixed(1);
         document.getElementById('stat-range').textContent = Math.round(this.player.range);
@@ -997,6 +1035,34 @@ class Game {
         const coinsEl = document.getElementById('stat-coins');
         if (coinsEl) {
             coinsEl.textContent = this.player.coins || 0;
+        }
+        
+        this.updateHUDArtifacts();
+    }
+
+    updateHUDArtifacts() {
+        const shelf = document.getElementById('artifacts-shelf');
+        if (!shelf) return;
+        shelf.innerHTML = '';
+        
+        if (this.player && this.player.artifacts) {
+            this.player.artifacts.forEach(artId => {
+                const art = ARTIFACTS_DATABASE.find(a => a.id === artId);
+                if (art) {
+                    const badge = document.createElement('div');
+                    badge.className = 'artifact-badge';
+                    badge.style.borderColor = art.color || '#a855f7';
+                    badge.style.boxShadow = `0 0 10px ${art.color || '#a855f7'}33`;
+                    badge.innerHTML = art.emoji;
+
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'artifact-tooltip';
+                    tooltip.innerHTML = `<strong>${art.name}</strong><br><p>${art.description}</p>`;
+                    badge.appendChild(tooltip);
+
+                    shelf.appendChild(badge);
+                }
+            });
         }
     }
 
@@ -1591,6 +1657,9 @@ class Game {
                         const kbForce = proj.type === 'arrow' ? 2.5 : 1; // arrows have some knockback
                         
                         mob.takeDamage(proj.damage, Math.cos(angle) * kbForce, Math.sin(angle) * kbForce);
+                        if (this.player.hasArtifact('frozen_tear')) {
+                            mob.slowTimer = 90;
+                        }
                         
                         if (proj.type === 'magic' || proj.type === 'lightning') {
                             proj.explode(room);
@@ -1631,6 +1700,13 @@ class Game {
                 }
                 this.mobsKilled++;
 
+                // Vampire Fangs heal
+                if (this.player.hasArtifact('ruby_fangs')) {
+                    this.player.health = Math.min(this.player.maxHealth, this.player.health + 0.25);
+                    this.updateHUDHealth();
+                    spawnSparkles(this.player.x, this.player.y, '#ef4444', 5);
+                }
+
                 // Swarmer splitting logic
                 if (mob.type === 'swarmer') {
                     room.mobs.push(new Enemy(mob.x - 10, mob.y, 'mini_swarmer', 1));
@@ -1647,12 +1723,18 @@ class Game {
                 }
 
                 // Normal drops chance on mob death
+                let coinChance = 0.15;
+                if (this.player.hasArtifact('luck_clover')) coinChance += 0.15;
+
                 const r = Math.random();
-                if (r < 0.15) {
+                if (r < coinChance) {
                     room.drops.push(new Drop(mob.x, mob.y, 'coin'));
-                } else if (r < 0.22) {
+                    if (this.player.hasArtifact('greed_coin') && Math.random() < 0.10) {
+                        room.drops.push(new Drop(mob.x + 12, mob.y, 'coin'));
+                    }
+                } else if (r < coinChance + 0.07) {
                     room.drops.push(new Drop(mob.x, mob.y, 'mana'));
-                } else if (r < 0.28) {
+                } else if (r < coinChance + 0.13) {
                     room.drops.push(new Drop(mob.x, mob.y, 'heart'));
                 }
 
@@ -1684,6 +1766,15 @@ class Game {
             if (room.type === ROOM_TYPES.BOSS) {
                 audio.setMusicState('normal');
                 room.drops.push(new Drop(400, 230, 'trophy'));
+            }
+
+            // If Artifact Room is cleared, spawn a random unowned artifact pedestal in the center
+            if (room.type === ROOM_TYPES.ARTIFACT && room.drops.length === 0) {
+                const unowned = ARTIFACTS_DATABASE.filter(art => !this.player.hasArtifact(art.id));
+                const pool = unowned.length > 0 ? unowned : ARTIFACTS_DATABASE;
+                const chosenArt = pool[Math.floor(Math.random() * pool.length)];
+                room.drops.push(new Drop(400, 265, 'artifact', chosenArt));
+                spawnSparkles(400, 265, chosenArt.color || '#a855f7', 15);
             }
 
         }
@@ -1824,11 +1915,18 @@ class Game {
     drawWallTorch(ctx, tx, ty) {
         ctx.save();
         
+        const isArtifactRoom = this.dungeon && this.dungeon.activeRoom && this.dungeon.activeRoom.type === ROOM_TYPES.ARTIFACT;
+
         // Draw light source radial glow behind the torch
         const pulse = Math.sin(Date.now() * 0.008 + tx * 0.05) * 4 + 18;
         const glowGrad = ctx.createRadialGradient(tx, ty, 2, tx, ty, pulse);
-        glowGrad.addColorStop(0, 'rgba(249, 115, 22, 0.25)'); // soft orange
-        glowGrad.addColorStop(0.5, 'rgba(239, 68, 68, 0.1)'); // soft red
+        if (isArtifactRoom) {
+            glowGrad.addColorStop(0, 'rgba(168, 85, 247, 0.25)'); // soft purple
+            glowGrad.addColorStop(0.5, 'rgba(124, 58, 237, 0.1)'); // violet
+        } else {
+            glowGrad.addColorStop(0, 'rgba(249, 115, 22, 0.25)'); // soft orange
+            glowGrad.addColorStop(0.5, 'rgba(239, 68, 68, 0.1)'); // soft red
+        }
         glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         
         ctx.fillStyle = glowGrad;
@@ -1847,12 +1945,18 @@ class Game {
         const flameW = 4 + Math.cos(Date.now() * 0.012 + tx) * 1;
         
         const flameGrad = ctx.createLinearGradient(tx, ty, tx, ty - flameH);
-        flameGrad.addColorStop(0, '#f97316'); // bright orange
-        flameGrad.addColorStop(0.5, '#eab308'); // yellow
-        flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)'); // fade
+        if (isArtifactRoom) {
+            flameGrad.addColorStop(0, '#c084fc'); // bright light purple
+            flameGrad.addColorStop(0.5, '#a855f7'); // purple
+            flameGrad.addColorStop(1, 'rgba(124, 58, 237, 0)'); // violet fade
+        } else {
+            flameGrad.addColorStop(0, '#f97316'); // bright orange
+            flameGrad.addColorStop(0.5, '#eab308'); // yellow
+            flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)'); // fade
+        }
         
         ctx.shadowBlur = 10;
-        ctx.shadowColor = '#f97316';
+        ctx.shadowColor = isArtifactRoom ? '#a855f7' : '#f97316';
         ctx.fillStyle = flameGrad;
         
         ctx.beginPath();
@@ -2450,6 +2554,63 @@ class Game {
                     this.ctx.stroke();
                 }
             }
+        } else if (room.type === ROOM_TYPES.ARTIFACT) {
+            // Elegant dark indigo flagstone base
+            const grad = this.ctx.createRadialGradient(400, 300, 30, 400, 300, 380);
+            grad.addColorStop(0, '#1e1b4b'); // deep indigo-violet
+            grad.addColorStop(1, '#0c0a25'); // darker indigo-black
+            this.ctx.fillStyle = grad;
+            this.ctx.fillRect(64, 64, 672, 472);
+
+            // Flagstone seams with glowing purple/teal highlights
+            this.ctx.strokeStyle = 'rgba(139, 92, 246, 0.08)'; // Purple seams
+            this.ctx.lineWidth = 1;
+            for (let y = 64; y < 536; y += brickH) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(64, y);
+                this.ctx.lineTo(736, y);
+                this.ctx.stroke();
+
+                const isEvenRow = Math.floor(y / brickH) % 2 === 0;
+                const offset = isEvenRow ? 0 : (brickW / 2);
+                for (let x = 64 + offset; x < 736; x += brickW) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    this.ctx.lineTo(x, y + brickH);
+                    this.ctx.stroke();
+                }
+            }
+
+            // Draw glowing runic circle in the center of the room
+            this.ctx.save();
+            this.ctx.strokeStyle = '#a855f7'; // purple rune glow
+            this.ctx.lineWidth = 2.5;
+            this.ctx.shadowBlur = 15;
+            this.ctx.shadowColor = '#c084fc';
+            
+            // Outer runic ring
+            this.ctx.beginPath();
+            this.ctx.arc(400, 265, 55, 0, Math.PI * 2);
+            this.ctx.stroke();
+            
+            // Inner runic ring
+            this.ctx.strokeStyle = '#22d3ee'; // cyan/teal inner glow
+            this.ctx.shadowColor = '#22d3ee';
+            this.ctx.lineWidth = 1.5;
+            this.ctx.beginPath();
+            this.ctx.arc(400, 265, 38, 0, Math.PI * 2);
+            this.ctx.stroke();
+
+            // Runic cross beams
+            this.ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)';
+            this.ctx.beginPath();
+            for (let i = 0; i < 4; i++) {
+                const angle = (Math.PI / 2) * i;
+                this.ctx.moveTo(400 + Math.cos(angle) * 15, 265 + Math.sin(angle) * 15);
+                this.ctx.lineTo(400 + Math.cos(angle) * 38, 265 + Math.sin(angle) * 38);
+            }
+            this.ctx.stroke();
+            this.ctx.restore();
         } else {
             // Cool looking dark blue stone tiled floor
             const floorGrad = this.ctx.createRadialGradient(400, 300, 50, 400, 300, 420);
