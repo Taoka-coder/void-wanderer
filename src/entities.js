@@ -5,6 +5,114 @@ import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmok
 import { ROOM_TYPES } from './dungeon.js?v=24';
 import { audio } from './audio.js?v=24';
 
+export const ARTIFACTS_DATABASE = [
+    {
+        id: 'ruby_fangs',
+        name: 'Vampire Fangs',
+        description: 'Heal 0.25 heart on defeating an enemy.',
+        emoji: '🧛',
+        color: '#ef4444'
+    },
+    {
+        id: 'mana_crystal',
+        name: 'Mana Crystal',
+        description: '+30 Max Mana and +1 Mana Regen rate.',
+        emoji: '💎',
+        color: '#3b82f6'
+    },
+    {
+        id: 'luck_clover',
+        name: 'Emerald Clover',
+        description: '+15% coin drop chance and value.',
+        emoji: '🍀',
+        color: '#10b981'
+    },
+    {
+        id: 'hourglass',
+        name: 'Chronos Watch',
+        description: '+15% faster attack cooldown.',
+        emoji: '⏳',
+        color: '#f59e0b'
+    },
+    {
+        id: 'feather',
+        name: 'Pegasus Boot',
+        description: '+0.5 faster movement speed.',
+        emoji: '🪶',
+        color: '#e2e8f0'
+    },
+    {
+        id: 'obsidian_shield',
+        name: 'Obsidian Crest',
+        description: 'Reduces all incoming damage by 0.5.',
+        emoji: '🛡️',
+        color: '#475569'
+    },
+    {
+        id: 'phoenix_ashes',
+        name: 'Phoenix Feather',
+        description: 'Saves you from death once, reviving with 2 hearts.',
+        emoji: '🔥',
+        color: '#f97316'
+    },
+    {
+        id: 'tesla_coil',
+        name: 'Tesla Shard',
+        description: 'Zaps random surrounding enemies for 1 damage every 2 seconds.',
+        emoji: '⚡',
+        color: '#22d3ee'
+    },
+    {
+        id: 'cursed_ring',
+        name: 'Cursed Band',
+        description: '+1.5 base weapon damage, but -1 max health.',
+        emoji: '💍',
+        color: '#c084fc'
+    },
+    {
+        id: 'necro_urn',
+        name: 'Lich Urn',
+        description: 'Gains 1 second of shield invulnerability when taking damage.',
+        emoji: '⚱️',
+        color: '#84cc16'
+    },
+    {
+        id: 'frozen_tear',
+        name: 'Frozen Tear',
+        description: 'Attacks freeze/slow enemies by 25% for 1.5 seconds.',
+        emoji: '💧',
+        color: '#a5f3fc'
+    },
+    {
+        id: 'greed_coin',
+        name: 'Greed Emblem',
+        description: 'Defeated enemies have a 10% chance to drop double coins.',
+        emoji: '🪙',
+        color: '#eab308'
+    },
+    {
+        id: 'demon_horn',
+        name: 'Demon Horn',
+        description: '+0.8 weapon damage and +10% movement speed.',
+        emoji: '😈',
+        color: '#dc2626'
+    },
+    {
+        id: 'holy_grail',
+        name: 'Holy Grail',
+        description: 'Fully restores health at the start of each depth level.',
+        emoji: '🏆',
+        color: '#fbbf24'
+    },
+    {
+        id: 'void_core',
+        name: 'Void Lens',
+        description: 'Player projectiles pierce 1 additional enemy.',
+        emoji: '🌀',
+        color: '#7c3aed'
+    }
+];
+
 
 
 
@@ -74,22 +182,97 @@ export class Player {
         this.swordSlash = null; // { angle, progress, max }
         this.coins = 0;
         this.specialSpellCharged = false;
+        this.artifacts = [];
     }
 
+    hasArtifact(id) {
+        return this.artifacts && this.artifacts.includes(id);
+    }
+
+    addArtifact(art) {
+        if (!this.artifacts) this.artifacts = [];
+        // Prevent duplicates
+        if (this.artifacts.includes(art.id)) return;
+        this.artifacts.push(art.id);
+        
+        // Immediate adjustments on pickup
+        if (art.id === 'mana_crystal') {
+            this.maxMana = 130;
+            this.manaRegen = 0.45; // significantly faster mana regen (was 0.25)
+            this.mana = Math.min(this.maxMana, this.mana + 30);
+        }
+        if (art.id === 'cursed_ring') {
+            this.maxHealth = Math.max(1, this.maxHealth - 1);
+            this.health = Math.min(this.maxHealth, this.health);
+        }
+        
+        if (window.game && typeof window.game.updateHUDStats === 'function') {
+            window.game.updateHUDStats();
+        }
+    }
+
+    removeArtifact(id) {
+        if (!this.artifacts) return;
+        const idx = this.artifacts.indexOf(id);
+        if (idx !== -1) {
+            this.artifacts.splice(idx, 1);
+            // Revert changes if necessary
+            if (id === 'cursed_ring') {
+                this.maxHealth += 1;
+                this.health = Math.min(this.maxHealth, this.health + 1);
+            }
+            if (id === 'mana_crystal') {
+                this.maxMana = 100;
+                this.manaRegen = 0.25;
+                this.mana = Math.min(this.maxMana, this.mana);
+            }
+        }
+        if (window.game && typeof window.game.updateHUDStats === 'function') {
+            window.game.updateHUDStats();
+        }
+    }
+
+    getDamage() {
+        let baseDmg = this.damage;
+        if (this.hasArtifact('cursed_ring')) baseDmg += 1.5;
+        if (this.hasArtifact('demon_horn')) baseDmg += 0.8;
+        return baseDmg;
+    }
 
     takeDamage(amount) {
         if (this.invulnFrames > 0) return false;
-        
-        this.health -= amount;
-        this.invulnFrames = 60; // 1 second of invulnerability
-        
-        // Shake screen or spawn blood
+
+        // Apply Obsidian Shield damage reduction
+        let actualAmount = amount;
+        if (this.hasArtifact('obsidian_shield')) {
+            actualAmount = Math.max(0.25, actualAmount - 0.5);
+        }
+
+        // Phoenix ashes checks
+        if (this.health - actualAmount <= 0) {
+            if (this.hasArtifact('phoenix_ashes')) {
+                this.removeArtifact('phoenix_ashes');
+                this.health = 2; // Revived with 2 hearts!
+                this.invulnFrames = 180; // 3 seconds invuln
+                spawnSparkles(this.x, this.y, '#f97316', 30);
+                spawnFloatingText(this.x, this.y - 20, "REBORN!", '#f97316', 20, true);
+                audio.play('gamble_end');
+                if (window.game && typeof window.game.updateHUDHealth === 'function') {
+                    window.game.updateHUDHealth();
+                }
+                return false; // Prevent death
+            }
+        }
+
+        this.health -= actualAmount;
+        // Necro Urn gives double invincibility frames (120 frames instead of 60)
+        this.invulnFrames = this.hasArtifact('necro_urn') ? 120 : 60;
+
         spawnBlood(this.x, this.y, 12);
-        spawnFloatingText(this.x, this.y - 15, `-${amount} HP`, '#ef4444', 16);
-        
+        spawnFloatingText(this.x, this.y - 15, `-${actualAmount} HP`, '#ef4444', 16);
+
         audio.play('player_hit');
-        
-        // Immediately update health bar
+
         if (window.game && typeof window.game.updateHUDHealth === 'function') {
             window.game.updateHUDHealth();
         }
@@ -153,9 +336,33 @@ export class Player {
         } else {
             this.mana = Math.min(this.maxMana, this.mana + this.manaRegen);
         }
+        // Attack Cooldown (Chronos Watch reduces cooldowns by 15%)
+        if (this.shootCooldown > 0) {
+            this.shootCooldown -= this.hasArtifact('hourglass') ? 1.25 : 1.0;
+            if (this.shootCooldown < 0) this.shootCooldown = 0;
+        }
 
-        // Attack Cooldown
-        if (this.shootCooldown > 0) this.shootCooldown--;
+        // Tesla Coil zapping logic (every 2 seconds / 120 frames)
+        if (this.hasArtifact('tesla_coil')) {
+            this.teslaTimer = (this.teslaTimer || 0) + 1;
+            if (this.teslaTimer >= 120) {
+                this.teslaTimer = 0;
+                if (currentRoom && currentRoom.mobs && currentRoom.mobs.length > 0) {
+                    const nearbyMobs = currentRoom.mobs.filter(m => {
+                        const dx = m.x - this.x;
+                        const dy = m.y - this.y;
+                        return Math.sqrt(dx*dx + dy*dy) < 180;
+                    });
+                    if (nearbyMobs.length > 0) {
+                        // Pick random mob and zap
+                        const target = nearbyMobs[Math.floor(Math.random() * nearbyMobs.length)];
+                        target.takeDamage(1.5, 0, 0); // deal 1.5 damage
+                        spawnSparkles(target.x, target.y, '#22d3ee', 8);
+                        audio.play('hit');
+                    }
+                }
+            }
+        }
 
         // Determine speed multiplier (webs slow down player by 50%, roots by 75%)
         let speedMultiplier = 1;
@@ -198,7 +405,10 @@ export class Player {
             const length = Math.sqrt(dx * dx + dy * dy);
             this.moveDx = dx / length;
             this.moveDy = dy / length;
-            const actualSpeed = this.speed * speedMultiplier;
+            let baseSpeed = this.speed;
+            if (this.hasArtifact('feather')) baseSpeed += 0.5;
+            if (this.hasArtifact('demon_horn')) baseSpeed += 0.3;
+            const actualSpeed = baseSpeed * speedMultiplier;
             this.x += this.moveDx * actualSpeed;
             this.y += this.moveDy * actualSpeed;
             this.walkCycle += 0.15;
@@ -298,7 +508,7 @@ export class Player {
             // Sweep damage in cone
             const swingRadius = 90;
             const swingAngle = Math.PI * 0.65; // ~120 degrees arc
-            
+
             if (playAudioCallback) playAudioCallback('slash');
 
             // Hit Mobs in current room
@@ -306,19 +516,19 @@ export class Player {
                 const dx = mob.x - this.x;
                 const dy = mob.y - this.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                
+
                 if (dist < swingRadius + mob.radius) {
                     let angleToMob = Math.atan2(dy, dx);
-                    
-                    // Normalize difference angle to (-PI, PI)
                     let diffAngle = angleToMob - this.aimAngle;
                     while (diffAngle < -Math.PI) diffAngle += Math.PI * 2;
                     while (diffAngle > Math.PI) diffAngle -= Math.PI * 2;
 
                     if (Math.abs(diffAngle) < swingAngle / 2) {
-                        // HIT! Apply damage and knockback
                         const kForce = 6;
-                        mob.takeDamage(this.damage, Math.cos(angleToMob) * kForce, Math.sin(angleToMob) * kForce);
+                        mob.takeDamage(this.getDamage(), Math.cos(angleToMob) * kForce, Math.sin(angleToMob) * kForce);
+                        if (this.hasArtifact('frozen_tear')) {
+                            mob.slowTimer = 90;
+                        }
                     }
                 }
             }
@@ -342,7 +552,7 @@ export class Player {
                             proj.owner = 'player';
                             proj.vx = Math.cos(this.aimAngle) * 8;
                             proj.vy = Math.sin(this.aimAngle) * 8;
-                            proj.damage = this.damage * 0.75;
+                            proj.damage = this.getDamage() * 0.75;
                             spawnSparkles(proj.x, proj.y, '#e9d5ff', 5);
                         }
                     }
@@ -386,7 +596,7 @@ export class Player {
                 y: this.y,
                 vx: Math.cos(this.aimAngle) * speed,
                 vy: Math.sin(this.aimAngle) * speed,
-                damage: this.damage * 0.8,
+                damage: this.getDamage() * 0.8,
                 range: this.range * 1.2,
                 type: 'arrow',
                 owner: 'player'
@@ -408,7 +618,7 @@ export class Player {
                         startY: this.y,
                         vx: Math.cos(angle) * speed,
                         vy: Math.sin(angle) * speed,
-                        damage: this.damage * 2.2, // stronger lightning combo damage
+                        damage: this.getDamage() * 2.2, // stronger lightning combo damage
                         range: this.range * 1.2,
                         type: 'lightning',
                         owner: 'player'
@@ -447,7 +657,7 @@ export class Player {
                     startY: this.y,
                     vx: Math.cos(this.aimAngle) * speed,
                     vy: Math.sin(this.aimAngle) * speed,
-                    damage: this.damage * 1.4, // balanced normal lightning damage
+                    damage: this.getDamage() * 1.4, // balanced normal lightning damage
                     range: this.range * 1.0,
                     type: 'lightning',
                     owner: 'player'
@@ -1567,6 +1777,11 @@ export class Enemy {
                     break;
                 }
             }
+        }
+
+        if (this.slowTimer > 0) {
+            this.slowTimer--;
+            speedMultiplier *= 0.75;
         }
 
         const currentSpeed = this.speed * speedMultiplier;
@@ -2829,6 +3044,25 @@ export class Enemy {
             ctx.restore();
         }
 
+        // Draw frost slow overlay
+        if (this.slowTimer > 0) {
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.22)';
+            ctx.strokeStyle = 'rgba(34, 211, 238, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Tiny ice shards/sparkles
+            ctx.fillStyle = '#cffafe';
+            for (let i = 0; i < 3; i++) {
+                const angle = (Date.now() * 0.005 + i * Math.PI * 0.6) % (Math.PI * 2);
+                const rx = this.x + Math.cos(angle) * (this.radius * 0.6);
+                const ry = this.y + Math.sin(angle) * (this.radius * 0.6);
+                ctx.fillRect(rx - 1, ry - 1, 2, 2);
+            }
+        }
 
         // Draw health bar above if damaged
         if (this.health < this.maxHealth) {
@@ -4725,8 +4959,8 @@ export class Drop {
     constructor(x, y, type, statType = null) {
         this.x = x;
         this.y = y;
-        this.type = type; // 'heart', 'mana', 'coin', 'trophy'
-        this.radius = type === 'trophy' ? 16 : 8;
+        this.type = type; // 'heart', 'mana', 'coin', 'trophy', 'artifact'
+        this.radius = (type === 'trophy' || type === 'artifact') ? 16 : 8;
         this.pickedUp = false;
 
         // If it's a trophy, assign stat upgrade
@@ -4741,6 +4975,11 @@ export class Drop {
             // Choose random stat boost
             this.trophyData = stats[Math.floor(Math.random() * stats.length)];
         }
+
+        // If it's an artifact, assign the specific artifact data
+        if (type === 'artifact') {
+            this.artifactData = statType;
+        }
     }
 
     update(player) {
@@ -4754,7 +4993,7 @@ export class Drop {
         const dy = player.y - this.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
 
-        if (this.type !== 'trophy' && dist < 120) {
+        if (this.type !== 'trophy' && this.type !== 'artifact' && dist < 120) {
             const pullForce = (120 - dist) * 0.05;
             this.x += (dx / dist) * pullForce;
             this.y += (dy / dist) * pullForce;
@@ -4763,10 +5002,14 @@ export class Drop {
         // Collision Check with Player
         if (dist < this.radius + player.radius) {
             if (this.type === 'coin') {
-                player.coins = (player.coins || 0) + 1; // Increment player coin count!
+                let coinVal = 1;
+                if (player.hasArtifact('luck_clover') && Math.random() < 0.15) {
+                    coinVal = 2;
+                }
+                player.coins = (player.coins || 0) + coinVal;
                 player.restoreMana(5); // coins double as a tiny mana boost
                 spawnSparkles(this.x, this.y, '#f59e0b', 5);
-                spawnFloatingText(this.x, this.y, '+1 Coin', '#f59e0b', 12);
+                spawnFloatingText(this.x, this.y, `+${coinVal} Coin`, '#f59e0b', 12);
                 this.pickedUp = true;
                 audio.play('coin_pickup');
                 
@@ -4808,6 +5051,13 @@ export class Drop {
                 this.pickedUp = true;
                 audio.play('gamble_end');
                 return true;
+            } else if (this.type === 'artifact') {
+                player.addArtifact(this.artifactData);
+                this.pickedUp = true;
+                audio.play('gamble_end');
+                spawnSparkles(player.x, player.y, this.artifactData.color || '#a855f7', 20);
+                spawnFloatingText(player.x, player.y - 25, `${this.artifactData.name} FOUND!`, this.artifactData.color || '#a855f7', 16, true);
+                return true;
             }
         }
         return false;
@@ -4843,6 +5093,10 @@ export class Drop {
             ctx.strokeStyle = '#f59e0b'; // Gold trophy outline
             ctx.lineWidth = 5;
             ctx.strokeText(this.trophyData.icon, this.x, this.y - 14 + bounce);
+        } else if (this.type === 'artifact') {
+            ctx.strokeStyle = '#8b5cf6'; // Violet/purple outline
+            ctx.lineWidth = 5;
+            ctx.strokeText(this.artifactData.emoji, this.x, this.y - 14 + bounce);
         }
         ctx.restore();
 
@@ -4868,9 +5122,24 @@ export class Drop {
             ctx.font = "9px 'Cinzel', serif";
             ctx.fillStyle = '#f1f5f9';
             ctx.fillText("TROPHY", this.x, this.y + 22);
+        } else if (this.type === 'artifact') {
+            // Pedestal
+            ctx.fillStyle = '#6d28d9';
+            ctx.fillRect(this.x - 14, this.y + 10, 28, 6); // pedestal base
+            ctx.fillStyle = '#4c1d95';
+            ctx.fillRect(this.x - 6, this.y, 12, 10);      // stem
+            
+            // Draw floating artifact emoji above pedestal
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = this.artifactData.color || '#a855f7';
+            ctx.fillText(this.artifactData.emoji, this.x, this.y - 14 + bounce);
+            
+            // Floating text indicator
+            ctx.font = "9px 'Cinzel', serif";
+            ctx.fillStyle = '#e9d5ff';
+            ctx.fillText("ARTIFACT", this.x, this.y + 22);
         }
 
         ctx.restore();
     }
-
 }
