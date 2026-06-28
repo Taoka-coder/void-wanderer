@@ -1173,4 +1173,109 @@ body {
     justify-content: flex-end;
 }
 
+/* Artifacts Shelf Styles */
+#artifacts-shelf-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+    background: rgba(255, 255, 255, 0.015);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    width: 100%;
+}
+
+.artifacts-label {
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    color: #c084fc;
+    letter-spacing: 1px;
+    font-weight: 800;
+}
+
+#artifacts-shelf {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 24px;
+}
+
+.artifact-badge {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    background: rgba(30, 27, 75, 0.5);
+    border: 1.5px solid #8b5cf6;
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.95rem;
+    cursor: help;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.artifact-badge:hover {
+    transform: translateY(-2px) scale(1.1);
+    background: rgba(49, 46, 129, 0.85);
+    z-index: 100;
+}
+
+/* Tooltip design */
+.artifact-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(10, 8, 20, 0.96);
+    border: 1px solid #c084fc;
+    border-radius: 8px;
+    padding: 8px 12px;
+    width: 190px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 10px rgba(168, 85, 247, 0.25);
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: #f1f5f9;
+    text-align: left;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index: 1000;
+}
+
+.artifact-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #c084fc transparent transparent transparent;
+}
+
+.artifact-badge:hover .artifact-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.artifact-tooltip strong {
+    font-family: var(--font-heading);
+    color: #c084fc;
+    font-size: 0.76rem;
+    display: block;
+    margin-bottom: 3px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 4px rgba(168, 85, 247, 0.4);
+}
+
+.artifact-tooltip p {
+    margin: 0;
+    color: #94a3b8;
+}
+
 
