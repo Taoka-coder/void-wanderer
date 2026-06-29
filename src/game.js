@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=50';
-import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=50';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=50';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=50';
-import { ShopkeeperNPC } from './shop.js?v=50';
-import { audio } from './audio.js?v=50';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=51';
+import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=51';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=51';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=51';
+import { ShopkeeperNPC } from './shop.js?v=51';
+import { audio } from './audio.js?v=51';
 
 const BOSS_DIALOGUES = {
     'THE GOLEM': {
@@ -1811,15 +1811,17 @@ class Game {
             roomStatusEl.classList.add('active');
         }
 
-        // Description popup helper when standing near artifact
-        let nearArtifact = null;
+        // Description popup helper when standing near artifact or trophy
+        let nearItem = null;
+        let isTrophy = false;
         for (const drop of room.drops) {
-            if (drop.type === 'artifact') {
+            if (drop.type === 'artifact' || drop.type === 'trophy') {
                 const dx = this.player.x - drop.x;
                 const dy = this.player.y - drop.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < 80) {
-                    nearArtifact = drop.artifactData;
+                    nearItem = drop;
+                    isTrophy = (drop.type === 'trophy');
                     break;
                 }
             }
@@ -1827,11 +1829,20 @@ class Game {
 
         const popupEl = document.getElementById('artifact-popup');
         if (popupEl) {
-            if (nearArtifact) {
-                document.getElementById('popup-name').textContent = nearArtifact.name;
-                document.getElementById('popup-desc').textContent = nearArtifact.description;
-                const iconEl = popupEl.querySelector('.popup-icon');
-                if (iconEl) iconEl.textContent = nearArtifact.emoji;
+            if (nearItem) {
+                if (isTrophy) {
+                    const data = nearItem.trophyData;
+                    document.getElementById('popup-name').textContent = data.name;
+                    document.getElementById('popup-desc').textContent = data.desc;
+                    const iconEl = popupEl.querySelector('.popup-icon');
+                    if (iconEl) iconEl.textContent = data.icon;
+                } else {
+                    const data = nearItem.artifactData;
+                    document.getElementById('popup-name').textContent = data.name;
+                    document.getElementById('popup-desc').textContent = data.description;
+                    const iconEl = popupEl.querySelector('.popup-icon');
+                    if (iconEl) iconEl.textContent = data.emoji;
+                }
                 popupEl.classList.remove('hidden');
             } else {
                 popupEl.classList.add('hidden');
