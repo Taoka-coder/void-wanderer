@@ -591,8 +591,8 @@ export class Player {
             if (playAudioCallback) playAudioCallback('arrow');
 
             const speed = 9;
-            const spawnX = this.x + Math.cos(this.aimAngle) * 28;
-            const spawnY = this.y + Math.sin(this.aimAngle) * 28;
+            const spawnX = this.x + Math.cos(this.aimAngle) * 22;
+            const spawnY = this.y + Math.sin(this.aimAngle) * 22;
             projectiles.push(new Projectile({
                 x: spawnX,
                 y: spawnY,
@@ -606,9 +606,9 @@ export class Player {
 
         } else if (this.currentWeapon === 'magic') {
             const speed = 18; // high-speed lightning bolt
-            // Calculate staff crystal tip coordinates (30px hand + 24px staff hilt-to-crystal = 54px offset)
-            const crystalX = this.x + Math.cos(this.aimAngle) * 54;
-            const crystalY = this.y + Math.sin(this.aimAngle) * 54;
+            // Calculate staff crystal tip coordinates (24px hand + 24px staff hilt-to-crystal = 48px offset)
+            const crystalX = this.x + Math.cos(this.aimAngle) * 48;
+            const crystalY = this.y + Math.sin(this.aimAngle) * 48;
 
             if (this.specialSpellCharged) {
                 // Shoot the strong lightning combo (paid on prep, so no extra mana taken here)
@@ -774,132 +774,8 @@ export class Player {
             dir = 'left';
         }
 
-        // Draw Legs (White breeches, tall black boots) swinging in movement direction
-        const swing = this.moving ? Math.sin(this.walkCycle) * 3.5 : 0;
-        const swingX = swing * this.moveDx;
-        const swingY = swing * this.moveDy;
-
-        ctx.fillStyle = '#f8fafc'; // White breeches
-        ctx.fillRect(this.x - 7 + swingX, this.y + 13, 5, 6 + swingY);
-        ctx.fillRect(this.x + 2 - swingX, this.y + 13, 5, 6 - swingY);
-        // Black Boots
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(this.x - 8 + swingX, this.y + 18 + swingY, 6, 4);
-        ctx.fillRect(this.x + 2 - swingX, this.y + 18 - swingY, 6, 4);
-
-        // Draw Torso (Black frock coat under cuirass)
-        ctx.fillStyle = '#090d16'; // Deep black frock coat
-        ctx.beginPath();
-        ctx.roundRect(this.x - 10, this.y + 2, 20, 13, 3);
-        ctx.fill();
-        
-        if (dir !== 'up') {
-            // Red lapels / collar (front only)
-            ctx.fillStyle = '#b91c1c';
-            ctx.fillRect(this.x - 9, this.y + 2, 2, 10);
-            ctx.fillRect(this.x + 7, this.y + 2, 2, 10);
-        }
-
-        // Steel Breastplate or Backplate (Cuirass in polished black steel)
-        const pGrad = ctx.createLinearGradient(this.x - 8, this.y + 2, this.x + 8, this.y + 2);
-        pGrad.addColorStop(0, '#1e293b');  // dark slate steel
-        pGrad.addColorStop(0.5, '#475569'); // polished highlights
-        pGrad.addColorStop(1, '#0f172a');  // dark back edge
-        ctx.fillStyle = pGrad;
-        ctx.beginPath();
-        ctx.roundRect(this.x - 8, this.y + 1, 16, 12, 4);
-        ctx.fill();
-        ctx.strokeStyle = '#eab308'; // Gold trim
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        if (dir !== 'up') {
-            // Gold rivets on breastplate (front only)
-            ctx.fillStyle = '#eab308';
-            ctx.beginPath();
-            ctx.arc(this.x - 6, this.y + 3, 0.8, 0, Math.PI*2);
-            ctx.arc(this.x + 6, this.y + 3, 0.8, 0, Math.PI*2);
-            ctx.arc(this.x - 6, this.y + 9, 0.8, 0, Math.PI*2);
-            ctx.arc(this.x + 6, this.y + 9, 0.8, 0, Math.PI*2);
-            ctx.fill();
-        } else {
-            // Draw simple backplate crease / center fold line
-            ctx.strokeStyle = '#020617';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y + 1);
-            ctx.lineTo(this.x, this.y + 13);
-            ctx.stroke();
-        }
-
-        // Head (Skin tone, or back of helmet when looking up)
-        if (dir === 'up') {
-            ctx.fillStyle = '#1e293b'; // matches helmet base
-        } else {
-            ctx.fillStyle = '#fed7aa'; // skin tone face
-        }
-        ctx.beginPath();
-        ctx.arc(this.x, this.y - 6, 7.5, 0, Math.PI * 2);
-        ctx.fill();
-        if (dir === 'up') {
-            ctx.strokeStyle = '#eab308'; // gold border on back helmet piece
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        }
-
-        if (dir !== 'up') {
-            // Visor eyes (Blue)
-            ctx.fillStyle = '#0284c7';
-            ctx.beginPath();
-            if (dir === 'down') {
-                ctx.arc(this.x - 3, this.y - 6, 1.5, 0, Math.PI * 2);
-                ctx.arc(this.x + 3, this.y - 6, 1.5, 0, Math.PI * 2);
-            } else if (dir === 'left') {
-                ctx.arc(this.x - 6, this.y - 6, 1.5, 0, Math.PI * 2);
-            } else if (dir === 'right') {
-                ctx.arc(this.x + 6, this.y - 6, 1.5, 0, Math.PI * 2);
-            }
-            ctx.fill();
-        }
-
-        // Helmet (Cuirassier helmet in polished black metal)
-        const hGrad = ctx.createLinearGradient(this.x - 8, this.y - 15, this.x + 8, this.y - 15);
-        hGrad.addColorStop(0, '#1e293b');
-        hGrad.addColorStop(0.5, '#475569');
-        hGrad.addColorStop(1, '#0f172a');
-        ctx.fillStyle = hGrad;
-        ctx.strokeStyle = '#eab308'; // Gold trim
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y - 7, 7.5, -Math.PI, 0);
-        ctx.lineTo(this.x + 7.5, this.y - 4);
-        ctx.lineTo(this.x - 7.5, this.y - 4);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Gold helmet crest ridge
-        ctx.fillStyle = '#eab308';
-        ctx.fillRect(this.x - 1.5, this.y - 18, 3, 11);
-
-        // Majestic Crimson plume waving from top of helmet
-        const plumeWarp = Math.sin(Date.now() * 0.01) * 3;
-        ctx.fillStyle = '#dc2626';
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y - 18);
-        if (dir === 'left') {
-            ctx.bezierCurveTo(this.x + 8 + plumeWarp, this.y - 24, this.x + 6 + plumeWarp, this.y - 10, this.x + 2, this.y - 12);
-        } else if (dir === 'right') {
-            ctx.bezierCurveTo(this.x - 8 + plumeWarp, this.y - 24, this.x - 6 + plumeWarp, this.y - 10, this.x - 2, this.y - 12);
-        } else {
-            ctx.bezierCurveTo(this.x - 8 + plumeWarp, this.y - 26, this.x - 4 + plumeWarp, this.y - 14, this.x - 1, this.y - 13);
-        }
-        ctx.fill();
-
-        // --- DYNAMIC ARMS & HAND-HELD WEAPON SYSTEMS ---
+        // Calculate arm/weapon/fist attachment details
         const isAimingLeft = Math.cos(this.aimAngle) < 0;
-        
-        // Active Hand and Shoulder calculation
         const shoulderX = this.x + (isAimingLeft ? -8 : 8);
         const shoulderY = this.y + 4;
         
@@ -912,9 +788,9 @@ export class Player {
             handX = this.x + Math.cos(currentAngle) * 36;
             handY = this.y + Math.sin(currentAngle) * 36;
         } else {
-            // Extend arms further outwards (28-30px) so the fists clearly clear the shoulders!
+            // Tighten natural reach distance from 30px to 22px (Bow) / 24px (Sword/Staff)
             const bob = Math.sin(Date.now() * 0.005) * 1.2;
-            const dist = this.currentWeapon === 'bow' ? 28 : 30;
+            const dist = this.currentWeapon === 'bow' ? 22 : 24;
             handX = this.x + Math.cos(this.aimAngle) * dist + Math.sin(this.aimAngle + Math.PI/2) * bob;
             handY = this.y + Math.sin(this.aimAngle) * dist - Math.cos(this.aimAngle + Math.PI/2) * bob;
         }
@@ -946,277 +822,412 @@ export class Player {
             drawShield = true;
         }
 
-        // 1. Draw Resting Arm
-        ctx.strokeStyle = '#090d16'; // black sleeve
-        ctx.lineWidth = 4.5;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(restingShoulderX, restingShoulderY);
-        ctx.lineTo(restingHandX, restingHandY);
-        ctx.stroke();
+        const drawBody = () => {
+            // Draw Legs (White breeches, tall black boots) swinging in movement direction
+            const swing = this.moving ? Math.sin(this.walkCycle) * 3.5 : 0;
+            const swingX = swing * this.moveDx;
+            const swingY = swing * this.moveDy;
 
-        ctx.fillStyle = '#475569'; // steel pauldron
-        ctx.strokeStyle = '#eab308';
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.arc(restingShoulderX, restingShoulderY, 3.5, 0, Math.PI*2);
-        ctx.fill();
-        ctx.stroke();
+            ctx.fillStyle = '#f8fafc'; // White breeches
+            ctx.fillRect(this.x - 7 + swingX, this.y + 13, 5, 6 + swingY);
+            ctx.fillRect(this.x + 2 - swingX, this.y + 13, 5, 6 - swingY);
+            // Black Boots
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(this.x - 8 + swingX, this.y + 18 + swingY, 6, 4);
+            ctx.fillRect(this.x + 2 - swingX, this.y + 18 - swingY, 6, 4);
 
-        // If not bow, draw resting hand fist/accessories under shield/orb
-        if (this.currentWeapon !== 'bow') {
-            ctx.fillStyle = '#fed7aa'; // skin fist
-            ctx.strokeStyle = '#090d16';
-            ctx.lineWidth = 1;
+            // Draw Torso (Black frock coat under cuirass)
+            ctx.fillStyle = '#090d16'; // Deep black frock coat
             ctx.beginPath();
-            ctx.arc(restingHandX, restingHandY, 2.8, 0, Math.PI*2);
+            ctx.roundRect(this.x - 10, this.y + 2, 20, 13, 3);
             ctx.fill();
+            
+            if (dir !== 'up') {
+                // Red lapels / collar (front only)
+                ctx.fillStyle = '#b91c1c';
+                ctx.fillRect(this.x - 9, this.y + 2, 2, 10);
+                ctx.fillRect(this.x + 7, this.y + 2, 2, 10);
+            }
+
+            // Steel Breastplate or Backplate (Cuirass in polished black steel)
+            const pGrad = ctx.createLinearGradient(this.x - 8, this.y + 2, this.x + 8, this.y + 2);
+            pGrad.addColorStop(0, '#1e293b');  // dark slate steel
+            pGrad.addColorStop(0.5, '#475569'); // polished highlights
+            pGrad.addColorStop(1, '#0f172a');  // dark back edge
+            ctx.fillStyle = pGrad;
+            ctx.beginPath();
+            ctx.roundRect(this.x - 8, this.y + 1, 16, 12, 4);
+            ctx.fill();
+            ctx.strokeStyle = '#eab308'; // Gold trim
+            ctx.lineWidth = 1;
             ctx.stroke();
 
-            if (drawShield) {
-                // Steel buckler shield
-                ctx.save();
-                ctx.fillStyle = '#334155';
-                ctx.strokeStyle = '#fbbf24';
-                ctx.lineWidth = 1.2;
+            if (dir !== 'up') {
+                // Gold rivets on breastplate (front only)
+                ctx.fillStyle = '#eab308';
                 ctx.beginPath();
-                ctx.arc(restingHandX, restingHandY, 7.5, 0, Math.PI * 2);
+                ctx.arc(this.x - 6, this.y + 3, 0.8, 0, Math.PI*2);
+                ctx.arc(this.x + 6, this.y + 3, 0.8, 0, Math.PI*2);
+                ctx.arc(this.x - 6, this.y + 9, 0.8, 0, Math.PI*2);
+                ctx.arc(this.x + 6, this.y + 9, 0.8, 0, Math.PI*2);
                 ctx.fill();
-                ctx.stroke();
-                // Shield boss center
-                ctx.fillStyle = '#fbbf24';
-                ctx.beginPath();
-                ctx.arc(restingHandX, restingHandY, 2.5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-
-            if (drawMagicCharge) {
-                // Glowing magical energy orb near the channeling hand
-                const mPulse = Math.sin(Date.now() * 0.02) * 2;
-                ctx.save();
-                ctx.shadowBlur = 8 + mPulse * 2;
-                ctx.shadowColor = '#a855f7';
-                ctx.fillStyle = 'rgba(232, 121, 249, 0.85)';
-                ctx.beginPath();
-                ctx.arc(restingHandX, restingHandY - 2, 3.5 + mPulse * 0.4, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-
-        // 2. Draw Active Arm (Extending to hold the weapon)
-        ctx.strokeStyle = '#090d16'; // black sleeve
-        ctx.lineWidth = 4.5;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(shoulderX, shoulderY);
-        ctx.lineTo(handX, handY);
-        ctx.stroke();
-
-        ctx.fillStyle = '#475569'; // steel pauldron
-        ctx.strokeStyle = '#eab308';
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.arc(shoulderX, shoulderY, 3.5, 0, Math.PI*2);
-        ctx.fill();
-        ctx.stroke();
-
-        // 3. Draw active weapon in hand
-        ctx.save();
-        
-        if (this.currentWeapon === 'sword') {
-            let swordAngle;
-            if (this.swordSlash) {
-                const sweep = Math.PI * 0.75;
-                const progressRatio = this.swordSlash.progress / this.swordSlash.max;
-                swordAngle = this.swordSlash.angle - sweep / 2 + (sweep * progressRatio);
             } else {
-                swordAngle = this.aimAngle;
-            }
-
-            ctx.translate(handX, handY);
-            ctx.rotate(swordAngle + Math.PI / 2);
-            
-            // Draw Vector Sword
-            // Hand at (0,0) is at the POMMEL. Handle goes forward so pommel doesn't clip shoulder.
-            ctx.save();
-            
-            // Pommel (centered at 0, 0)
-            ctx.fillStyle = '#eab308';
-            ctx.beginPath();
-            ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Handle (goes forward from 0 to -8)
-            ctx.fillStyle = '#78350f';
-            ctx.fillRect(-2, -8, 4, 8);
-            
-            // Guard (at -9)
-            ctx.fillStyle = '#eab308';
-            ctx.fillRect(-8, -10.5, 16, 2.5);
-            
-            // Glow overlay for sword swings
-            if (this.swordSlash) {
-                ctx.shadowBlur = 18;
-                ctx.shadowColor = '#c084fc';
-                ctx.strokeStyle = 'rgba(192, 132, 252, 0.65)';
-                ctx.lineWidth = 7;
+                // Draw simple backplate crease / center fold line
+                ctx.strokeStyle = '#020617';
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.moveTo(0, -10);
-                ctx.lineTo(0, -38);
+                ctx.moveTo(this.x, this.y + 1);
+                ctx.lineTo(this.x, this.y + 13);
                 ctx.stroke();
             }
-            
-            // Blade (goes forward from -10 to -38)
-            ctx.fillStyle = '#f1f5f9';
-            ctx.strokeStyle = '#94a3b8';
-            ctx.lineWidth = 1.5;
+
+            // Head (Skin tone, or back of helmet when looking up)
+            if (dir === 'up') {
+                ctx.fillStyle = '#1e293b'; // matches helmet base
+            } else {
+                ctx.fillStyle = '#fed7aa'; // skin tone face
+            }
             ctx.beginPath();
-            ctx.moveTo(-3, -10.5);
-            ctx.lineTo(3, -10.5);
-            ctx.lineTo(2, -34);
-            ctx.lineTo(0, -38);
-            ctx.lineTo(-2, -34);
+            ctx.arc(this.x, this.y - 6, 7.5, 0, Math.PI * 2);
+            ctx.fill();
+            if (dir === 'up') {
+                ctx.strokeStyle = '#eab308'; // gold border on back helmet piece
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            if (dir !== 'up') {
+                // Visor eyes (Blue)
+                ctx.fillStyle = '#0284c7';
+                ctx.beginPath();
+                if (dir === 'down') {
+                    ctx.arc(this.x - 3, this.y - 6, 1.5, 0, Math.PI * 2);
+                    ctx.arc(this.x + 3, this.y - 6, 1.5, 0, Math.PI * 2);
+                } else if (dir === 'left') {
+                    ctx.arc(this.x - 6, this.y - 6, 1.5, 0, Math.PI * 2);
+                } else if (dir === 'right') {
+                    ctx.arc(this.x + 6, this.y - 6, 1.5, 0, Math.PI * 2);
+                }
+                ctx.fill();
+            }
+
+            // Helmet (Cuirassier helmet in polished black metal)
+            const hGrad = ctx.createLinearGradient(this.x - 8, this.y - 15, this.x + 8, this.y - 15);
+            hGrad.addColorStop(0, '#1e293b');
+            hGrad.addColorStop(0.5, '#475569');
+            hGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = hGrad;
+            ctx.strokeStyle = '#eab308'; // Gold trim
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y - 7, 7.5, -Math.PI, 0);
+            ctx.lineTo(this.x + 7.5, this.y - 4);
+            ctx.lineTo(this.x - 7.5, this.y - 4);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
-            ctx.restore();
-            
-        } else if (this.currentWeapon === 'bow') {
-            const pullDist = cooldownRatio * 9;
-            
-            // Tiny recoil pushback after release
-            const recoilX = (this.shootCooldown > 0 && this.shootCooldown < 10) ? Math.sin((this.shootCooldown / 10) * Math.PI) * 4 : 0;
 
-            ctx.translate(handX - Math.cos(this.aimAngle) * recoilX, handY - Math.sin(this.aimAngle) * recoilX);
-            ctx.rotate(this.aimAngle);
-            
-            // Draw Bow limbs with bezier curves so they look bent under tension!
-            ctx.save();
-            ctx.strokeStyle = '#b45309'; // wood color
-            ctx.lineWidth = 3.5;
-            ctx.lineCap = 'round';
-            
-            // Bend variables based on string pull (flexes back towards player, i.e., negative X)
-            const flexX = Math.sin(-cooldownRatio * 0.15) * 8;
-            const flexY = cooldownRatio * 2;
-
-            const tipUpperX = flexX;
-            const tipUpperY = -14 + flexY;
-            const tipLowerX = flexX;
-            const tipLowerY = 14 - flexY;
-
-            // Draw upper bent arm curving forward (positive X)
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.bezierCurveTo(6 + cooldownRatio * 2, -6, 6 + cooldownRatio * 2, -10, tipUpperX, tipUpperY);
-            ctx.stroke();
-
-            // Draw lower bent arm curving forward (positive X)
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.bezierCurveTo(6 + cooldownRatio * 2, 6, 6 + cooldownRatio * 2, 10, tipLowerX, tipLowerY);
-            ctx.stroke();
-
-            // Draw golden grip bindings
-            ctx.fillStyle = '#fbbf24';
-            ctx.fillRect(-2, -2, 4, 4);
-
-            // Draw string
-            ctx.strokeStyle = 'rgba(241, 245, 249, 0.9)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(tipUpperX, tipUpperY);
-            ctx.lineTo(-pullDist, 0); // string pulled back
-            ctx.lineTo(tipLowerX, tipLowerY);
-            ctx.stroke();
-            
-            // Draw nocked arrow if cooldown/charge is active
-            if (this.shootCooldown > 0) {
-                // Arrow shaft
-                ctx.strokeStyle = '#78350f';
-                ctx.lineWidth = 1.6;
-                ctx.beginPath();
-                ctx.moveTo(-pullDist, 0);
-                ctx.lineTo(-pullDist + 18, 0);
-                ctx.stroke();
-                
-                // Slate arrow head
-                ctx.fillStyle = '#94a3b8';
-                ctx.beginPath();
-                ctx.moveTo(-pullDist + 18, 0);
-                ctx.lineTo(-pullDist + 14, -2.5);
-                ctx.lineTo(-pullDist + 14, 2.5);
-                ctx.closePath();
-                ctx.fill();
-
-                // Fletchings
-                ctx.fillStyle = '#ef4444';
-                ctx.fillRect(-pullDist - 1.5, -2, 2.5, 4);
-            }
-            ctx.restore();
-            
-        } else if (this.currentWeapon === 'magic') {
-            // Apply slight cast tilt forward during cooldown
-            const castTilt = cooldownRatio > 0 ? Math.sin(cooldownRatio * Math.PI) * 0.4 : 0;
-            ctx.translate(handX, handY);
-            ctx.rotate(this.aimAngle + Math.PI / 2 - castTilt);
-            
-            // Draw Magic Staff
-            // Staff shaft shifted forward (goes from -18 to +4) so bottom doesn't hit shoulder
-            ctx.save();
-            ctx.fillStyle = '#5c2d91'; // purple wood
-            ctx.fillRect(-2.2, -18, 4.4, 22);
-            
-            // Golden wings holding crystal
+            // Gold helmet crest ridge
             ctx.fillStyle = '#eab308';
+            ctx.fillRect(this.x - 1.5, this.y - 18, 3, 11);
+
+            // Majestic Crimson plume waving from top of helmet
+            const plumeWarp = Math.sin(Date.now() * 0.01) * 3;
+            ctx.fillStyle = '#dc2626';
             ctx.beginPath();
-            ctx.arc(0, -21, 5, 0, Math.PI, true);
+            ctx.moveTo(this.x, this.y - 18);
+            if (dir === 'left') {
+                ctx.bezierCurveTo(this.x + 8 + plumeWarp, this.y - 24, this.x + 6 + plumeWarp, this.y - 10, this.x + 2, this.y - 12);
+            } else if (dir === 'right') {
+                ctx.bezierCurveTo(this.x - 8 + plumeWarp, this.y - 24, this.x - 6 + plumeWarp, this.y - 10, this.x - 2, this.y - 12);
+            } else {
+                ctx.bezierCurveTo(this.x - 8 + plumeWarp, this.y - 26, this.x - 4 + plumeWarp, this.y - 14, this.x - 1, this.y - 13);
+            }
             ctx.fill();
-            ctx.fillRect(-4, -24, 8, 3.5);
-            
-            const pulse = Math.sin(Date.now() * 0.015) * 1.5;
-            const crystalRadius = 4.2 + (cooldownRatio > 0 ? 1.5 : pulse * 0.4);
-            
-            // Draw expanding mana shockwaves if cast cooldown active
-            if (cooldownRatio > 0) {
-                ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+        };
+
+        const drawArmsAndWeapons = () => {
+            // 1. Draw Resting Arm
+            ctx.strokeStyle = '#090d16'; // black sleeve
+            ctx.lineWidth = 4.5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(restingShoulderX, restingShoulderY);
+            ctx.lineTo(restingHandX, restingHandY);
+            ctx.stroke();
+
+            ctx.fillStyle = '#475569'; // steel pauldron
+            ctx.strokeStyle = '#eab308';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.arc(restingShoulderX, restingShoulderY, 3.5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+
+            // If not bow, draw resting hand fist/accessories under shield/orb
+            if (this.currentWeapon !== 'bow') {
+                ctx.fillStyle = '#fed7aa'; // skin fist
+                ctx.strokeStyle = '#090d16';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(0, -24, 8 + (1 - cooldownRatio) * 14, 0, Math.PI * 2);
+                ctx.arc(restingHandX, restingHandY, 2.8, 0, Math.PI*2);
+                ctx.fill();
                 ctx.stroke();
+
+                if (drawShield) {
+                    // Steel buckler shield
+                    ctx.save();
+                    ctx.fillStyle = '#334155';
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.arc(restingHandX, restingHandY, 7.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    // Shield boss center
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(restingHandX, restingHandY, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                if (drawMagicCharge) {
+                    // Glowing magical energy orb near the channeling hand
+                    const mPulse = Math.sin(Date.now() * 0.02) * 2;
+                    ctx.save();
+                    ctx.shadowBlur = 8 + mPulse * 2;
+                    ctx.shadowColor = '#a855f7';
+                    ctx.fillStyle = 'rgba(232, 121, 249, 0.85)';
+                    ctx.beginPath();
+                    ctx.arc(restingHandX, restingHandY - 2, 3.5 + mPulse * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
             }
 
-            ctx.shadowBlur = (cooldownRatio > 0 ? 20 : 12) + pulse * 2;
-            ctx.shadowColor = '#06b6d4';
-            ctx.fillStyle = '#22d3ee'; // bright cyan crystal core
+            // 2. Draw Active Arm (Extending to hold the weapon)
+            ctx.strokeStyle = '#090d16'; // black sleeve
+            ctx.lineWidth = 4.5;
+            ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.arc(0, -24, crystalRadius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-        ctx.restore();
+            ctx.moveTo(shoulderX, shoulderY);
+            ctx.lineTo(handX, handY);
+            ctx.stroke();
 
-        // 4. DRAW FISTS ON TOP OF WEAPON HANDLES (makes it look like they are gripping them in fists!)
-        // Active Hand Fist
-        ctx.fillStyle = '#fed7aa'; // active skin fist
-        ctx.strokeStyle = '#090d16'; // dark outline for definition
-        ctx.lineWidth = 1.0;
-        ctx.beginPath();
-        ctx.arc(handX, handY, 3.6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        // If bow, draw resting hand fist on top of string/arrow nock
-        if (this.currentWeapon === 'bow') {
-            ctx.fillStyle = '#fed7aa';
-            ctx.strokeStyle = '#090d16';
-            ctx.lineWidth = 1.0;
+            ctx.fillStyle = '#475569'; // steel pauldron
+            ctx.strokeStyle = '#eab308';
+            ctx.lineWidth = 0.8;
             ctx.beginPath();
-            ctx.arc(restingHandX, restingHandY, 3.0, 0, Math.PI * 2);
+            ctx.arc(shoulderX, shoulderY, 3.5, 0, Math.PI*2);
             ctx.fill();
             ctx.stroke();
+
+            // 3. Draw active weapon in hand
+            ctx.save();
+            
+            if (this.currentWeapon === 'sword') {
+                let swordAngle;
+                if (this.swordSlash) {
+                    const sweep = Math.PI * 0.75;
+                    const progressRatio = this.swordSlash.progress / this.swordSlash.max;
+                    swordAngle = this.swordSlash.angle - sweep / 2 + (sweep * progressRatio);
+                } else {
+                    swordAngle = this.aimAngle;
+                }
+
+                ctx.translate(handX, handY);
+                ctx.rotate(swordAngle + Math.PI / 2);
+                
+                // Draw Vector Sword
+                // Hand at (0,0) is at the POMMEL. Handle goes forward so pommel doesn't clip shoulder.
+                ctx.save();
+                
+                // Pommel (centered at 0, 0)
+                ctx.fillStyle = '#eab308';
+                ctx.beginPath();
+                ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Handle (goes forward from 0 to -8)
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(-2, -8, 4, 8);
+                
+                // Guard (at -9)
+                ctx.fillStyle = '#eab308';
+                ctx.fillRect(-8, -10.5, 16, 2.5);
+                
+                // Glow overlay for sword swings
+                if (this.swordSlash) {
+                    ctx.shadowBlur = 18;
+                    ctx.shadowColor = '#c084fc';
+                    ctx.strokeStyle = 'rgba(192, 132, 252, 0.65)';
+                    ctx.lineWidth = 7;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -10);
+                    ctx.lineTo(0, -38);
+                    ctx.stroke();
+                }
+                
+                // Blade (goes forward from -10 to -38)
+                ctx.fillStyle = '#f1f5f9';
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(-3, -10.5);
+                ctx.lineTo(3, -10.5);
+                ctx.lineTo(2, -34);
+                ctx.lineTo(0, -38);
+                ctx.lineTo(-2, -34);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+                
+            } else if (this.currentWeapon === 'bow') {
+                const pullDist = cooldownRatio * 9;
+                
+                // Tiny recoil pushback after release
+                const recoilX = (this.shootCooldown > 0 && this.shootCooldown < 10) ? Math.sin((this.shootCooldown / 10) * Math.PI) * 4 : 0;
+
+                ctx.translate(handX - Math.cos(this.aimAngle) * recoilX, handY - Math.sin(this.aimAngle) * recoilX);
+                ctx.rotate(this.aimAngle);
+                
+                // Draw Bow limbs with bezier curves so they look bent under tension!
+                ctx.save();
+                ctx.strokeStyle = '#b45309'; // wood color
+                ctx.lineWidth = 3.5;
+                ctx.lineCap = 'round';
+                
+                // Bend variables based on string pull (flexes back towards player, i.e., negative X)
+                const flexX = Math.sin(-cooldownRatio * 0.15) * 8;
+                const flexY = cooldownRatio * 2;
+
+                const tipUpperX = flexX;
+                const tipUpperY = -14 + flexY;
+                const tipLowerX = flexX;
+                const tipLowerY = 14 - flexY;
+
+                // Draw upper bent arm curving forward (positive X)
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(6 + cooldownRatio * 2, -6, 6 + cooldownRatio * 2, -10, tipUpperX, tipUpperY);
+                ctx.stroke();
+
+                // Draw lower bent arm curving forward (positive X)
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(6 + cooldownRatio * 2, 6, 6 + cooldownRatio * 2, 10, tipLowerX, tipLowerY);
+                ctx.stroke();
+
+                // Draw golden grip bindings
+                ctx.fillStyle = '#fbbf24';
+                ctx.fillRect(-2, -2, 4, 4);
+
+                // Draw string
+                ctx.strokeStyle = 'rgba(241, 245, 249, 0.9)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(tipUpperX, tipUpperY);
+                ctx.lineTo(-pullDist, 0); // string pulled back
+                ctx.lineTo(tipLowerX, tipLowerY);
+                ctx.stroke();
+                
+                // Draw nocked arrow if cooldown/charge is active
+                if (this.shootCooldown > 0) {
+                    // Arrow shaft
+                    ctx.strokeStyle = '#78350f';
+                    ctx.lineWidth = 1.6;
+                    ctx.beginPath();
+                    ctx.moveTo(-pullDist, 0);
+                    ctx.lineTo(-pullDist + 18, 0);
+                    ctx.stroke();
+                    
+                    // Slate arrow head
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.beginPath();
+                    ctx.moveTo(-pullDist + 18, 0);
+                    ctx.lineTo(-pullDist + 14, -2.5);
+                    ctx.lineTo(-pullDist + 14, 2.5);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Fletchings
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(-pullDist - 1.5, -2, 2.5, 4);
+                }
+                ctx.restore();
+                
+            } else if (this.currentWeapon === 'magic') {
+                // Apply slight cast tilt forward during cooldown
+                const castTilt = cooldownRatio > 0 ? Math.sin(cooldownRatio * Math.PI) * 0.4 : 0;
+                ctx.translate(handX, handY);
+                ctx.rotate(this.aimAngle + Math.PI / 2 - castTilt);
+                
+                // Draw Magic Staff
+                // Staff shaft shifted forward (goes from -18 to +4) so bottom doesn't hit shoulder
+                ctx.save();
+                ctx.fillStyle = '#5c2d91'; // purple wood
+                ctx.fillRect(-2.2, -18, 4.4, 22);
+                
+                // Golden wings holding crystal
+                ctx.fillStyle = '#eab308';
+                ctx.beginPath();
+                ctx.arc(0, -21, 5, 0, Math.PI, true);
+                ctx.fill();
+                ctx.fillRect(-4, -24, 8, 3.5);
+                
+                const pulse = Math.sin(Date.now() * 0.015) * 1.5;
+                const crystalRadius = 4.2 + (cooldownRatio > 0 ? 1.5 : pulse * 0.4);
+                
+                // Draw expanding mana shockwaves if cast cooldown active
+                if (cooldownRatio > 0) {
+                    ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(0, -24, 8 + (1 - cooldownRatio) * 14, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.shadowBlur = (cooldownRatio > 0 ? 20 : 12) + pulse * 2;
+                ctx.shadowColor = '#06b6d4';
+                ctx.fillStyle = '#22d3ee'; // bright cyan crystal core
+                ctx.beginPath();
+                ctx.arc(0, -24, crystalRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            ctx.restore();
+
+            // 4. DRAW FISTS ON TOP OF WEAPON HANDLES (makes it look like they are gripping them in fists!)
+            // Active Hand Fist
+            ctx.fillStyle = '#fed7aa'; // active skin fist
+            ctx.strokeStyle = '#090d16'; // dark outline for definition
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.arc(handX, handY, 3.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // If bow, draw resting hand fist on top of string/arrow nock
+            if (this.currentWeapon === 'bow') {
+                ctx.fillStyle = '#fed7aa';
+                ctx.strokeStyle = '#090d16';
+                ctx.lineWidth = 1.0;
+                ctx.beginPath();
+                ctx.arc(restingHandX, restingHandY, 3.0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+        };
+
+        // Render in correct Z-order layer stack based on direction
+        if (dir === 'up') {
+            drawArmsAndWeapons();
+            drawBody();
+        } else {
+            drawBody();
+            drawArmsAndWeapons();
         }
 
         ctx.restore();
