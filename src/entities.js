@@ -914,10 +914,9 @@ export class Player {
             restingHandX = handX - Math.cos(this.aimAngle) * pullDist;
             restingHandY = handY - Math.sin(this.aimAngle) * pullDist;
         } else if (this.currentWeapon === 'magic') {
-            // Resting hand is raised channeling energy
-            restingHandX = restingShoulderX + (isAimingLeft ? 5 : -5);
-            restingHandY = this.y - 4;
-            drawMagicCharge = true;
+            // Resting hand sits normally at the side (no raised arm or purple orb)
+            restingHandX = restingShoulderX + (isAimingLeft ? 2 : -2);
+            restingHandY = this.y + 11;
         } else {
             // Sword: holding a round buckler shield in the off hand
             restingHandX = restingShoulderX + (isAimingLeft ? 4 : -4);
