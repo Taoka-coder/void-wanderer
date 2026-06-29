@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=35';
-import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=35';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=35';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=35';
-import { ShopkeeperNPC } from './shop.js?v=35';
-import { audio } from './audio.js?v=35';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=36';
+import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=36';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=36';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=36';
+import { ShopkeeperNPC } from './shop.js?v=36';
+import { audio } from './audio.js?v=36';
 
 const BOSS_DIALOGUES = {
     'THE GOLEM': {
@@ -1214,6 +1214,15 @@ class Game {
             }
         }
 
+        // Initialize room puzzle if it exists and is idle
+        if (room.hasPuzzle && room.puzzleState === 'idle') {
+            room.puzzleState = 'showing_sequence';
+            room.puzzleShowTimer = 50; // brief delay before flashing sequence
+            room.puzzleFlashStep = -1;
+            room.puzzleInput = [];
+            room.puzzlePlates.forEach(p => { p.active = false; p.flashTimer = 0; p.playerInside = false; });
+        }
+
         // 3. Update Player
         this.player.update(this.keys, this.mouse, room.obstacles, room, this.keyBinds);
         
@@ -1840,6 +1849,11 @@ class Game {
             } else {
                 popupEl.classList.add('hidden');
             }
+        }
+
+        // Update Puzzle logic in empty rooms
+        if (room.hasPuzzle && !room.puzzleSolved) {
+            this.updateRoomPuzzle(room);
         }
 
         // 7. Update Drops (Loot Pickups)
@@ -2768,6 +2782,85 @@ class Game {
             this.ctx.restore();
         }
 
+        // Draw Puzzle Plates if room has puzzle
+        if (room.hasPuzzle) {
+            this.ctx.save();
+            for (const plate of room.puzzlePlates) {
+                const drawColor = plate.tempColor || (plate.active ? plate.color : 'rgba(255, 255, 255, 0.12)');
+                const ringColor = plate.tempColor || plate.color;
+
+                this.ctx.shadowBlur = plate.active ? 15 : 4;
+                this.ctx.shadowColor = ringColor;
+
+                // Draw outer stone rim
+                this.ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
+                this.ctx.strokeStyle = ringColor;
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.arc(plate.x, plate.y, plate.radius, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.stroke();
+
+                // Draw inner active glow circle
+                if (plate.active) {
+                    this.ctx.fillStyle = drawColor;
+                    this.ctx.beginPath();
+                    this.ctx.arc(plate.x, plate.y, plate.radius - 6, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
+                // Draw glyph/emoji symbol in center
+                this.ctx.shadowBlur = 0;
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = '14px sans-serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(plate.emoji || '🔮', plate.x, plate.y);
+
+                // Reset temporary colors if any
+                if (plate.tempColor && plate.flashTimer <= 0) {
+                    plate.tempColor = null;
+                }
+            }
+            
+            // Draw puzzle status overlay in the center top (small subtle banner)
+            if (!room.puzzleSolved) {
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+                this.ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.roundRect(300, 75, 200, 24, 6);
+                this.ctx.fill();
+                this.ctx.stroke();
+
+                this.ctx.fillStyle = '#c084fc';
+                this.ctx.font = '9px monospace';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                
+                let bannerText = "STEP ON PLATES IN SEQUENCE";
+                if (room.puzzleState === 'showing_sequence') bannerText = "WATCH THE GLOW SEQUENCE";
+                else if (room.puzzleState === 'waiting_input') bannerText = `REPEAT SEQUENCE: ${room.puzzleInput.length}/3`;
+                this.ctx.fillText(bannerText, 400, 87);
+            } else {
+                // If solved, show a green solved text briefly
+                this.ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                this.ctx.strokeStyle = '#10b981';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.roundRect(340, 75, 120, 24, 6);
+                this.ctx.fill();
+                this.ctx.stroke();
+
+                this.ctx.fillStyle = '#34d399';
+                this.ctx.font = '9px monospace';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText("PUZZLE SOLVED", 400, 87);
+            }
+            this.ctx.restore();
+        }
+
         // Draw Room border walls (Cuirassier theme blocky stone)
         // Top Wall
         this.drawStoneWall(this.ctx, 0, 0, 800, 64, false);
@@ -3499,6 +3592,139 @@ class Game {
         
         this.currentState = this.states.START;
         this.checkSaveExists();
+    }
+
+    updateRoomPuzzle(room) {
+        // Handle flashing sequence state
+        if (room.puzzleState === 'showing_sequence') {
+            room.puzzleShowTimer--;
+            if (room.puzzleShowTimer <= 0) {
+                room.puzzleFlashStep++;
+                if (room.puzzleFlashStep < room.puzzleSequence.length) {
+                    const plateId = room.puzzleSequence[room.puzzleFlashStep];
+                    const plate = room.puzzlePlates.find(p => p.id === plateId);
+                    if (plate) {
+                        plate.active = true;
+                        plate.flashTimer = 25; // stays lit for 25 frames
+                        const sfxPitch = [300, 450, 600][plateId];
+                        audio.playSynthNote(sfxPitch, 'sine', 0.15, 0.35, audio.ctx.currentTime);
+                        spawnSparkles(plate.x, plate.y, plate.color, 8);
+                    }
+                    room.puzzleShowTimer = 45; // wait 45 frames before next flash
+                } else {
+                    // Finished showing sequence, wait for player input
+                    room.puzzleState = 'waiting_input';
+                    room.puzzleInput = [];
+                }
+            }
+        }
+
+        // Update individual plate flashing timer
+        for (const plate of room.puzzlePlates) {
+            if (plate.flashTimer > 0 && plate.flashTimer < 99999) {
+                plate.flashTimer--;
+                if (plate.flashTimer <= 0) {
+                    plate.active = false;
+                }
+            }
+        }
+
+        // Check if player steps on any plate (only when waiting for input)
+        if (room.puzzleState === 'waiting_input') {
+            for (const plate of room.puzzlePlates) {
+                const px = this.player.x;
+                const py = this.player.y;
+                const dx = px - plate.x;
+                const dy = py - plate.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < plate.radius + 15) {
+                    if (!plate.active && !plate.playerInside) {
+                        plate.playerInside = true;
+                        plate.active = true;
+                        plate.flashTimer = 20;
+
+                        // Add to input sequence
+                        room.puzzleInput.push(plate.id);
+
+                        const stepIndex = room.puzzleInput.length - 1;
+                        const expectedId = room.puzzleSequence[stepIndex];
+
+                        if (plate.id === expectedId) {
+                            // Correct step!
+                            const sfxPitch = [300, 450, 600][plate.id];
+                            audio.playSynthNote(sfxPitch, 'sine', 0.2, 0.4, audio.ctx.currentTime);
+                            spawnSparkles(plate.x, plate.y, plate.color, 12);
+                            spawnFloatingText(plate.x, plate.y - 30, "✔️", '#10b981');
+
+                            // If sequence complete
+                            if (room.puzzleInput.length === room.puzzleSequence.length) {
+                                room.puzzleSolved = true;
+                                room.puzzleState = 'solved';
+                                
+                                audio.play('gamble_end');
+                                spawnSparkles(400, 300, '#10b981', 30);
+                                
+                                room.puzzlePlates.forEach(p => {
+                                    p.color = '#10b981';
+                                    p.active = true;
+                                    p.flashTimer = 999999;
+                                    p.tempColor = '#10b981';
+                                });
+
+                                this.spawnPuzzleReward(room);
+                            }
+                        } else {
+                            // Incorrect step!
+                            audio.playSynthNote(120, 'sawtooth', 0.3, 0.5, audio.ctx.currentTime);
+                            spawnFloatingText(plate.x, plate.y - 30, "❌", '#ef4444');
+                            
+                            room.puzzlePlates.forEach(p => {
+                                p.active = true;
+                                p.flashTimer = 35;
+                                p.tempColor = '#ef4444';
+                            });
+
+                            room.puzzleState = 'showing_sequence';
+                            room.puzzleShowTimer = 55;
+                            room.puzzleFlashStep = -1;
+                            room.puzzleInput = [];
+                        }
+                    }
+                } else {
+                    plate.playerInside = false;
+                }
+            }
+        }
+    }
+
+    spawnPuzzleReward(room) {
+        const isCoin = Math.random() < 0.5;
+        if (isCoin) {
+            const coinRoll = Math.random();
+            let amount = 1;
+            if (coinRoll > 0.85) amount = 10;
+            else if (coinRoll > 0.5) amount = 5;
+
+            for (let i = 0; i < amount; i++) {
+                const rx = 400 + (Math.random() * 40 - 20);
+                const ry = 300 + (Math.random() * 40 - 20);
+                room.drops.push(new Drop(rx, ry, 'coin'));
+            }
+            spawnFloatingText(400, 240, `+${amount} COINS REWARD!`, '#eab308');
+        } else {
+            const heartRoll = Math.random();
+            let amount = 1;
+            if (heartRoll > 0.85) amount = 3;
+            else if (heartRoll > 0.5) amount = 2;
+
+            for (let i = 0; i < amount; i++) {
+                const rx = 400 + (Math.random() * 40 - 20);
+                const ry = 300 + (Math.random() * 40 - 20);
+                room.drops.push(new Drop(rx, ry, 'heart'));
+            }
+            spawnFloatingText(400, 240, `+${amount} HEARTS REWARD!`, '#ef4444');
+        }
     }
 
     loop() {
