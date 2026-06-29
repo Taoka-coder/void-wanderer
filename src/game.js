@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=44';
-import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=44';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=44';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=44';
-import { ShopkeeperNPC } from './shop.js?v=44';
-import { audio } from './audio.js?v=44';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=45';
+import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=45';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=45';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=45';
+import { ShopkeeperNPC } from './shop.js?v=45';
+import { audio } from './audio.js?v=45';
 
 const BOSS_DIALOGUES = {
     'THE GOLEM': {
