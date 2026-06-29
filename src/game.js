@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=36';
-import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=36';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=36';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=36';
-import { ShopkeeperNPC } from './shop.js?v=36';
-import { audio } from './audio.js?v=36';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=37';
+import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=37';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=37';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=37';
+import { ShopkeeperNPC } from './shop.js?v=37';
+import { audio } from './audio.js?v=37';
 
 const BOSS_DIALOGUES = {
     'THE GOLEM': {
@@ -550,7 +550,7 @@ class Game {
         this.generateLevel();
 
         this.currentState = this.states.PLAYING;
-        audio.startMusic();
+        audio.startMusic(true);
         
         // Shift focus to the canvas for keyboard inputs
         if (this.canvas) {
