@@ -792,12 +792,15 @@ export class Player {
         ctx.beginPath();
         ctx.roundRect(this.x - 10, this.y + 2, 20, 13, 3);
         ctx.fill();
-        // Red lapels / collar
-        ctx.fillStyle = '#b91c1c';
-        ctx.fillRect(this.x - 9, this.y + 2, 2, 10);
-        ctx.fillRect(this.x + 7, this.y + 2, 2, 10);
+        
+        if (dir !== 'up') {
+            // Red lapels / collar (front only)
+            ctx.fillStyle = '#b91c1c';
+            ctx.fillRect(this.x - 9, this.y + 2, 2, 10);
+            ctx.fillRect(this.x + 7, this.y + 2, 2, 10);
+        }
 
-        // Steel Breastplate (Cuirass in polished black steel)
+        // Steel Breastplate or Backplate (Cuirass in polished black steel)
         const pGrad = ctx.createLinearGradient(this.x - 8, this.y + 2, this.x + 8, this.y + 2);
         pGrad.addColorStop(0, '#1e293b');  // dark slate steel
         pGrad.addColorStop(0.5, '#475569'); // polished highlights
@@ -810,20 +813,39 @@ export class Player {
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Gold rivets on breastplate
-        ctx.fillStyle = '#eab308';
-        ctx.beginPath();
-        ctx.arc(this.x - 6, this.y + 3, 0.8, 0, Math.PI*2);
-        ctx.arc(this.x + 6, this.y + 3, 0.8, 0, Math.PI*2);
-        ctx.arc(this.x - 6, this.y + 9, 0.8, 0, Math.PI*2);
-        ctx.arc(this.x + 6, this.y + 9, 0.8, 0, Math.PI*2);
-        ctx.fill();
+        if (dir !== 'up') {
+            // Gold rivets on breastplate (front only)
+            ctx.fillStyle = '#eab308';
+            ctx.beginPath();
+            ctx.arc(this.x - 6, this.y + 3, 0.8, 0, Math.PI*2);
+            ctx.arc(this.x + 6, this.y + 3, 0.8, 0, Math.PI*2);
+            ctx.arc(this.x - 6, this.y + 9, 0.8, 0, Math.PI*2);
+            ctx.arc(this.x + 6, this.y + 9, 0.8, 0, Math.PI*2);
+            ctx.fill();
+        } else {
+            // Draw simple backplate crease / center fold line
+            ctx.strokeStyle = '#020617';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y + 1);
+            ctx.lineTo(this.x, this.y + 13);
+            ctx.stroke();
+        }
 
-        // Head (Skin tone)
-        ctx.fillStyle = '#fed7aa';
+        // Head (Skin tone, or back of helmet when looking up)
+        if (dir === 'up') {
+            ctx.fillStyle = '#1e293b'; // matches helmet base
+        } else {
+            ctx.fillStyle = '#fed7aa'; // skin tone face
+        }
         ctx.beginPath();
         ctx.arc(this.x, this.y - 6, 7.5, 0, Math.PI * 2);
         ctx.fill();
+        if (dir === 'up') {
+            ctx.strokeStyle = '#eab308'; // gold border on back helmet piece
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
 
         if (dir !== 'up') {
             // Visor eyes (Blue)
