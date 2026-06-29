@@ -1064,7 +1064,7 @@ export class Player {
             const recoilX = (this.shootCooldown > 0 && this.shootCooldown < 10) ? Math.sin((this.shootCooldown / 10) * Math.PI) * 4 : 0;
 
             ctx.translate(handX - Math.cos(this.aimAngle) * recoilX, handY - Math.sin(this.aimAngle) * recoilX);
-            ctx.rotate(this.aimAngle + Math.PI / 2);
+            ctx.rotate(this.aimAngle);
             
             // Draw Bow limbs with bezier curves so they look bent under tension!
             ctx.save();
