@@ -268,14 +268,14 @@ export class Dungeon {
             const randIdx = Math.floor(Math.random() * deadEnds.length);
             artifactRoomObj = deadEnds.splice(randIdx, 1)[0];
             artifactRoomObj.type = ROOM_TYPES.ARTIFACT;
-            artifactRoomObj.cleared = false;
+            artifactRoomObj.cleared = true;
         } else {
             for (let i = 2; i < distances.length; i++) {
                 const r = distances[i].room;
                 if (r !== bossRoomObj && r !== trophyRoomObj && r !== mysteryRoomObj) {
                     artifactRoomObj = r;
                     artifactRoomObj.type = ROOM_TYPES.ARTIFACT;
-                    artifactRoomObj.cleared = false;
+                    artifactRoomObj.cleared = true;
                     break;
                 }
             }
