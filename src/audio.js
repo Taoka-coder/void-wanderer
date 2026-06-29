@@ -110,8 +110,12 @@ class SoundEngine {
         }
     }
 
-    startMusic() {
+    startMusic(reset = false) {
         this.init();
+        if (reset) {
+            if (this.mainMusic) this.mainMusic.currentTime = 0;
+            if (this.bossMusic) this.bossMusic.currentTime = 0;
+        }
         if (this.musicEnabled) return;
         this.musicEnabled = true;
         this.playStateMusic();
