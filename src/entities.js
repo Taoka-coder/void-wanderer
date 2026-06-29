@@ -1072,7 +1072,7 @@ export class Player {
             ctx.lineWidth = 3.5;
             ctx.lineCap = 'round';
             
-            // Bend variables based on string pull
+            // Bend variables based on string pull (flexes back towards player, i.e., negative X)
             const flexX = Math.sin(-cooldownRatio * 0.15) * 8;
             const flexY = cooldownRatio * 2;
 
@@ -1081,16 +1081,16 @@ export class Player {
             const tipLowerX = flexX;
             const tipLowerY = 14 - flexY;
 
-            // Draw upper bent arm
+            // Draw upper bent arm curving forward (positive X)
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.bezierCurveTo(-6 - cooldownRatio * 2, -6, -6 - cooldownRatio * 2, -10, tipUpperX, tipUpperY);
+            ctx.bezierCurveTo(6 + cooldownRatio * 2, -6, 6 + cooldownRatio * 2, -10, tipUpperX, tipUpperY);
             ctx.stroke();
 
-            // Draw lower bent arm
+            // Draw lower bent arm curving forward (positive X)
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.bezierCurveTo(-6 - cooldownRatio * 2, 6, -6 - cooldownRatio * 2, 10, tipLowerX, tipLowerY);
+            ctx.bezierCurveTo(6 + cooldownRatio * 2, 6, 6 + cooldownRatio * 2, 10, tipLowerX, tipLowerY);
             ctx.stroke();
 
             // Draw golden grip bindings
