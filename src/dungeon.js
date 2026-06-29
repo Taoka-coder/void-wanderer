@@ -309,10 +309,32 @@ export class Dungeon {
         // 6. Remaining rooms are either basic (combat) or empty (obstacles only)
         for (const room of this.roomsList) {
             if (room.type === ROOM_TYPES.BASIC) {
-                // 30% chance to be an empty room with obstacles
-                if (Math.random() < 0.3) {
+                // 20% chance to be an empty room
+                if (Math.random() < 0.2) {
                     room.type = ROOM_TYPES.EMPTY;
                     room.cleared = true;
+
+                    // 50% chance to have a sequence puzzle inside
+                    if (Math.random() < 0.5) {
+                        room.hasPuzzle = true;
+                        room.puzzleSolved = false;
+                        room.puzzleState = 'idle';
+                        room.puzzleSequence = [
+                            Math.floor(Math.random() * 3),
+                            Math.floor(Math.random() * 3),
+                            Math.floor(Math.random() * 3)
+                        ];
+                        room.puzzleInput = [];
+                        room.puzzleShowTimer = 0;
+                        room.puzzleFlashStep = -1;
+                        room.puzzlePlates = [
+                            { x: 280, y: 300, radius: 24, color: '#ec4899', emoji: '🌸', active: false, flashTimer: 0, id: 0 },
+                            { x: 400, y: 300, radius: 24, color: '#06b6d4', emoji: '💎', active: false, flashTimer: 0, id: 1 },
+                            { x: 520, y: 300, radius: 24, color: '#eab308', emoji: '☀️', active: false, flashTimer: 0, id: 2 }
+                        ];
+                        // Clear obstacles to make room for the puzzle
+                        room.obstacles = [];
+                    }
                 }
             }
         }
