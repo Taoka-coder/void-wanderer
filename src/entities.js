@@ -759,8 +759,8 @@ export class Player {
 
         // Draw Player body
         // Custom procedurally styled human character in black-metal 18th century cuirassier armour
-        const wobble = 0; // Glide without body bobbing for realistic movement
-        
+        const breatheY = !this.moving ? Math.sin(Date.now() * 0.003) * 0.65 : 0;
+
         // Determine looking direction
         let dir = 'down';
         const angle = this.aimAngle;
@@ -777,7 +777,7 @@ export class Player {
         // Calculate arm/weapon/fist attachment details
         const isAimingLeft = Math.cos(this.aimAngle) < 0;
         const shoulderX = this.x + (isAimingLeft ? -8 : 8);
-        const shoulderY = this.y + 4;
+        const shoulderY = this.y + 4 + breatheY;
         
         let handX, handY;
         if (this.currentWeapon === 'sword' && this.swordSlash) {
@@ -786,18 +786,18 @@ export class Player {
             const currentAngle = this.swordSlash.angle - sweep / 2 + (sweep * progressRatio);
             // Fully extend arm during slash sweep (36px outwards)
             handX = this.x + Math.cos(currentAngle) * 36;
-            handY = this.y + Math.sin(currentAngle) * 36;
+            handY = this.y + Math.sin(currentAngle) * 36 + breatheY;
         } else {
             // Tighten natural reach distance from 30px to 22px (Bow) / 24px (Sword/Staff)
             const bob = Math.sin(Date.now() * 0.005) * 1.2;
             const dist = this.currentWeapon === 'bow' ? 22 : 24;
             handX = this.x + Math.cos(this.aimAngle) * dist + Math.sin(this.aimAngle + Math.PI/2) * bob;
-            handY = this.y + Math.sin(this.aimAngle) * dist - Math.cos(this.aimAngle + Math.PI/2) * bob;
+            handY = this.y + Math.sin(this.aimAngle) * dist - Math.cos(this.aimAngle + Math.PI/2) * bob + breatheY;
         }
 
         // Calculate resting arm/hand details based on weapon type
         const restingShoulderX = this.x + (isAimingLeft ? 8 : -8);
-        const restingShoulderY = this.y + 4;
+        const restingShoulderY = this.y + 4 + breatheY;
         
         let restingHandX, restingHandY;
         let drawShield = false;
@@ -814,11 +814,11 @@ export class Player {
         } else if (this.currentWeapon === 'magic') {
             // Resting hand sits normally at the side (no raised arm or purple orb)
             restingHandX = restingShoulderX + (isAimingLeft ? 2 : -2);
-            restingHandY = this.y + 11;
+            restingHandY = this.y + 11 + breatheY;
         } else {
             // Sword: holding a round buckler shield in the off hand
             restingHandX = restingShoulderX + (isAimingLeft ? 4 : -4);
-            restingHandY = this.y + 11;
+            restingHandY = this.y + 11 + breatheY;
             drawShield = true;
         }
 
@@ -839,24 +839,24 @@ export class Player {
             // Draw Torso (Black frock coat under cuirass)
             ctx.fillStyle = '#090d16'; // Deep black frock coat
             ctx.beginPath();
-            ctx.roundRect(this.x - 10, this.y + 2, 20, 13, 3);
+            ctx.roundRect(this.x - 10, this.y + 2 + breatheY, 20, 13, 3);
             ctx.fill();
             
             if (dir !== 'up') {
                 // Red lapels / collar (front only)
                 ctx.fillStyle = '#b91c1c';
-                ctx.fillRect(this.x - 9, this.y + 2, 2, 10);
-                ctx.fillRect(this.x + 7, this.y + 2, 2, 10);
+                ctx.fillRect(this.x - 9, this.y + 2 + breatheY, 2, 10);
+                ctx.fillRect(this.x + 7, this.y + 2 + breatheY, 2, 10);
             }
 
             // Steel Breastplate or Backplate (Cuirass in polished black steel)
-            const pGrad = ctx.createLinearGradient(this.x - 8, this.y + 2, this.x + 8, this.y + 2);
+            const pGrad = ctx.createLinearGradient(this.x - 8, this.y + 2 + breatheY, this.x + 8, this.y + 2 + breatheY);
             pGrad.addColorStop(0, '#1e293b');  // dark slate steel
             pGrad.addColorStop(0.5, '#475569'); // polished highlights
             pGrad.addColorStop(1, '#0f172a');  // dark back edge
             ctx.fillStyle = pGrad;
             ctx.beginPath();
-            ctx.roundRect(this.x - 8, this.y + 1, 16, 12, 4);
+            ctx.roundRect(this.x - 8, this.y + 1 + breatheY, 16, 12, 4);
             ctx.fill();
             ctx.strokeStyle = '#eab308'; // Gold trim
             ctx.lineWidth = 1;
@@ -866,18 +866,18 @@ export class Player {
                 // Gold rivets on breastplate (front only)
                 ctx.fillStyle = '#eab308';
                 ctx.beginPath();
-                ctx.arc(this.x - 6, this.y + 3, 0.8, 0, Math.PI*2);
-                ctx.arc(this.x + 6, this.y + 3, 0.8, 0, Math.PI*2);
-                ctx.arc(this.x - 6, this.y + 9, 0.8, 0, Math.PI*2);
-                ctx.arc(this.x + 6, this.y + 9, 0.8, 0, Math.PI*2);
+                ctx.arc(this.x - 6, this.y + 3 + breatheY, 0.8, 0, Math.PI*2);
+                ctx.arc(this.x + 6, this.y + 3 + breatheY, 0.8, 0, Math.PI*2);
+                ctx.arc(this.x - 6, this.y + 9 + breatheY, 0.8, 0, Math.PI*2);
+                ctx.arc(this.x + 6, this.y + 9 + breatheY, 0.8, 0, Math.PI*2);
                 ctx.fill();
             } else {
                 // Draw simple backplate crease / center fold line
                 ctx.strokeStyle = '#020617';
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.moveTo(this.x, this.y + 1);
-                ctx.lineTo(this.x, this.y + 13);
+                ctx.moveTo(this.x, this.y + 1 + breatheY);
+                ctx.lineTo(this.x, this.y + 13 + breatheY);
                 ctx.stroke();
             }
 
@@ -888,7 +888,7 @@ export class Player {
                 ctx.fillStyle = '#fed7aa'; // skin tone face
             }
             ctx.beginPath();
-            ctx.arc(this.x, this.y - 6, 7.5, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y - 6 + breatheY, 7.5, 0, Math.PI * 2);
             ctx.fill();
             if (dir === 'up') {
                 ctx.strokeStyle = '#eab308'; // gold border on back helmet piece
@@ -901,18 +901,18 @@ export class Player {
                 ctx.fillStyle = '#0284c7';
                 ctx.beginPath();
                 if (dir === 'down') {
-                    ctx.arc(this.x - 3, this.y - 6, 1.5, 0, Math.PI * 2);
-                    ctx.arc(this.x + 3, this.y - 6, 1.5, 0, Math.PI * 2);
+                    ctx.arc(this.x - 3, this.y - 6 + breatheY, 1.5, 0, Math.PI * 2);
+                    ctx.arc(this.x + 3, this.y - 6 + breatheY, 1.5, 0, Math.PI * 2);
                 } else if (dir === 'left') {
-                    ctx.arc(this.x - 6, this.y - 6, 1.5, 0, Math.PI * 2);
+                    ctx.arc(this.x - 6, this.y - 6 + breatheY, 1.5, 0, Math.PI * 2);
                 } else if (dir === 'right') {
-                    ctx.arc(this.x + 6, this.y - 6, 1.5, 0, Math.PI * 2);
+                    ctx.arc(this.x + 6, this.y - 6 + breatheY, 1.5, 0, Math.PI * 2);
                 }
                 ctx.fill();
             }
 
             // Helmet (Cuirassier helmet in polished black metal)
-            const hGrad = ctx.createLinearGradient(this.x - 8, this.y - 15, this.x + 8, this.y - 15);
+            const hGrad = ctx.createLinearGradient(this.x - 8, this.y - 15 + breatheY, this.x + 8, this.y - 15 + breatheY);
             hGrad.addColorStop(0, '#1e293b');
             hGrad.addColorStop(0.5, '#475569');
             hGrad.addColorStop(1, '#0f172a');
@@ -920,28 +920,28 @@ export class Player {
             ctx.strokeStyle = '#eab308'; // Gold trim
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.arc(this.x, this.y - 7, 7.5, -Math.PI, 0);
-            ctx.lineTo(this.x + 7.5, this.y - 4);
-            ctx.lineTo(this.x - 7.5, this.y - 4);
+            ctx.arc(this.x, this.y - 7 + breatheY, 7.5, -Math.PI, 0);
+            ctx.lineTo(this.x + 7.5, this.y - 4 + breatheY);
+            ctx.lineTo(this.x - 7.5, this.y - 4 + breatheY);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
             // Gold helmet crest ridge
             ctx.fillStyle = '#eab308';
-            ctx.fillRect(this.x - 1.5, this.y - 18, 3, 11);
+            ctx.fillRect(this.x - 1.5, this.y - 18 + breatheY, 3, 11);
 
             // Majestic Crimson plume waving from top of helmet
             const plumeWarp = Math.sin(Date.now() * 0.01) * 3;
             ctx.fillStyle = '#dc2626';
             ctx.beginPath();
-            ctx.moveTo(this.x, this.y - 18);
+            ctx.moveTo(this.x, this.y - 18 + breatheY);
             if (dir === 'left') {
-                ctx.bezierCurveTo(this.x + 8 + plumeWarp, this.y - 24, this.x + 6 + plumeWarp, this.y - 10, this.x + 2, this.y - 12);
+                ctx.bezierCurveTo(this.x + 8 + plumeWarp, this.y - 24 + breatheY, this.x + 6 + plumeWarp, this.y - 10 + breatheY, this.x + 2, this.y - 12 + breatheY);
             } else if (dir === 'right') {
-                ctx.bezierCurveTo(this.x - 8 + plumeWarp, this.y - 24, this.x - 6 + plumeWarp, this.y - 10, this.x - 2, this.y - 12);
+                ctx.bezierCurveTo(this.x - 8 + plumeWarp, this.y - 24 + breatheY, this.x - 6 + plumeWarp, this.y - 10 + breatheY, this.x - 2, this.y - 12 + breatheY);
             } else {
-                ctx.bezierCurveTo(this.x - 8 + plumeWarp, this.y - 26, this.x - 4 + plumeWarp, this.y - 14, this.x - 1, this.y - 13);
+                ctx.bezierCurveTo(this.x - 8 + plumeWarp, this.y - 26 + breatheY, this.x - 4 + plumeWarp, this.y - 14 + breatheY, this.x - 1, this.y - 13 + breatheY);
             }
             ctx.fill();
         };
