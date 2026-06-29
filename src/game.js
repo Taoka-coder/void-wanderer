@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=45';
-import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=45';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=45';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=45';
-import { ShopkeeperNPC } from './shop.js?v=45';
-import { audio } from './audio.js?v=45';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=46';
+import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=46';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=46';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=46';
+import { ShopkeeperNPC } from './shop.js?v=46';
+import { audio } from './audio.js?v=46';
 
 const BOSS_DIALOGUES = {
     'THE GOLEM': {
@@ -892,38 +892,6 @@ class Game {
             room.bossVariant = boss.bossVariant;
             room.mobs.push(boss);
             spawnSmoke(400, 260, 15);
-        } else if (room.type === ROOM_TYPES.ARTIFACT) {
-            // Spawn 3-5 beefier guardians
-            const guardianCount = Math.floor(Math.random() * 3) + 3; // 3 to 5
-            const levelMultiplier = 1 + (this.level - 1) * 0.12;
-            const guardianMultiplier = levelMultiplier * 1.5; // 50% stronger
-            
-            const guardianTypes = {
-                1: 'forest_sprout',
-                2: 'shadow_chaser',
-                3: 'death_chaser',
-                4: 'fire_chaser',
-                5: 'void_chaser'
-            };
-            const guardianType = guardianTypes[Math.min(this.level, 5)] || 'chaser';
-
-            for (let i = 0; i < guardianCount; i++) {
-                let sx, sy, dist;
-                do {
-                    sx = 150 + Math.random() * 500;
-                    sy = 150 + Math.random() * 300;
-                    const dx = sx - this.player.x;
-                    const dy = sy - this.player.y;
-                    dist = Math.sqrt(dx*dx + dy*dy);
-                } while (dist < 120);
-
-                const guard = new Enemy(sx, sy, guardianType, guardianMultiplier);
-                guard.radius = guard.radius * 1.25; // physically larger
-                guard.maxHealth = Math.round(guard.maxHealth * 1.3);
-                guard.health = guard.maxHealth;
-                room.mobs.push(guard);
-                spawnSmoke(sx, sy, 8);
-            }
         }
     }
 
