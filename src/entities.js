@@ -591,9 +591,11 @@ export class Player {
             if (playAudioCallback) playAudioCallback('arrow');
 
             const speed = 9;
+            const spawnX = this.x + Math.cos(this.aimAngle) * 28;
+            const spawnY = this.y + Math.sin(this.aimAngle) * 28;
             projectiles.push(new Projectile({
-                x: this.x,
-                y: this.y,
+                x: spawnX,
+                y: spawnY,
                 vx: Math.cos(this.aimAngle) * speed,
                 vy: Math.sin(this.aimAngle) * speed,
                 damage: this.getDamage() * 0.8,
@@ -604,6 +606,9 @@ export class Player {
 
         } else if (this.currentWeapon === 'magic') {
             const speed = 18; // high-speed lightning bolt
+            // Calculate staff crystal tip coordinates (30px hand + 24px staff hilt-to-crystal = 54px offset)
+            const crystalX = this.x + Math.cos(this.aimAngle) * 54;
+            const crystalY = this.y + Math.sin(this.aimAngle) * 54;
 
             if (this.specialSpellCharged) {
                 // Shoot the strong lightning combo (paid on prep, so no extra mana taken here)
@@ -612,10 +617,10 @@ export class Player {
 
                 angles.forEach(angle => {
                     projectiles.push(new Projectile({
-                        x: this.x,
-                        y: this.y,
-                        startX: this.x,
-                        startY: this.y,
+                        x: crystalX,
+                        y: crystalY,
+                        startX: crystalX,
+                        startY: crystalY,
                         vx: Math.cos(angle) * speed,
                         vy: Math.sin(angle) * speed,
                         damage: this.getDamage() * 2.2, // stronger lightning combo damage
@@ -651,10 +656,10 @@ export class Player {
                 if (playAudioCallback) playAudioCallback('spell');
 
                 projectiles.push(new Projectile({
-                    x: this.x,
-                    y: this.y,
-                    startX: this.x,
-                    startY: this.y,
+                    x: crystalX,
+                    y: crystalY,
+                    startX: crystalX,
+                    startY: crystalY,
                     vx: Math.cos(this.aimAngle) * speed,
                     vy: Math.sin(this.aimAngle) * speed,
                     damage: this.getDamage() * 1.4, // balanced normal lightning damage
