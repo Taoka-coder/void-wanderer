@@ -1,12 +1,12 @@
 // Main Game Engine for Void Wanderer
 // Manages loops, states, rendering, inputs, room transitions, and synth audio effects
 
-import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=46';
-import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=46';
-import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=46';
-import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=46';
-import { ShopkeeperNPC } from './shop.js?v=46';
-import { audio } from './audio.js?v=46';
+import { Dungeon, ROOM_TYPES, START_X, START_Y } from './dungeon.js?v=47';
+import { Player, Enemy, Boss, Drop, ARTIFACTS_DATABASE } from './entities.js?v=47';
+import { updateAndDrawParticles, clearParticles, spawnSmoke, spawnSparkles, spawnFloatingText, spawnEmbers } from './particles.js?v=47';
+import { performMysteryGamble, MysteryManNPC } from './mysteryMan.js?v=47';
+import { ShopkeeperNPC } from './shop.js?v=47';
+import { audio } from './audio.js?v=47';
 
 const BOSS_DIALOGUES = {
     'THE GOLEM': {
@@ -256,10 +256,29 @@ class Game {
                         this.openSettingsMenu();
                     } else if (this.currentState === this.states.SETTINGS) {
                         this.closeSettingsMenu();
+                    } else if (this.currentState === this.states.GAMBLE) {
+                        // Only allow exit if the coin is not currently spinning
+                        const coinContainer = document.getElementById('gamble-wheel-container');
+                        if (coinContainer && coinContainer.classList.contains('hidden')) {
+                            this.closeGambleOverlay();
+                        }
                     }
                     e.preventDefault();
                     e.stopPropagation();
                     return;
+                }
+
+                if (this.currentState === this.states.GAMBLE) {
+                    if (e.code === 'Space' || e.key === ' ') {
+                        // Only allow flipping if the coin is not already spinning
+                        const coinContainer = document.getElementById('gamble-wheel-container');
+                        if (coinContainer && coinContainer.classList.contains('hidden')) {
+                            this.gambleFate();
+                        }
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
                 }
 
                 if (e.code) {
