@@ -1176,7 +1176,6 @@ export class Player {
             ctx.restore();
         }
         ctx.restore();
-        ctx.restore();
 
         // 4. DRAW FISTS ON TOP OF WEAPON HANDLES (makes it look like they are gripping them in fists!)
         // Active Hand Fist
@@ -1198,6 +1197,8 @@ export class Player {
             ctx.fill();
             ctx.stroke();
         }
+
+        ctx.restore();
 
         this.x = origX;
         this.y = origY;
