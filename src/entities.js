@@ -876,8 +876,6 @@ export class Player {
         const shoulderX = this.x + (isAimingLeft ? -8 : 8);
         const shoulderY = this.y + 4;
         
-        // Idle hand position (extends from shoulder towards target)
-        // If swinging sword, the hand position matches the swinging arc!
         let handX, handY;
         if (this.currentWeapon === 'sword' && this.swordSlash) {
             const sweep = Math.PI * 0.75;
@@ -886,16 +884,41 @@ export class Player {
             handX = this.x + Math.cos(currentAngle) * 24;
             handY = this.y + Math.sin(currentAngle) * 24;
         } else {
-            handX = this.x + Math.cos(this.aimAngle) * 16;
-            handY = this.y + Math.sin(this.aimAngle) * 16;
+            // Apply slight idle weapon bobbing
+            const bob = Math.sin(Date.now() * 0.005) * 1.2;
+            handX = this.x + Math.cos(this.aimAngle) * 18 + Math.sin(this.aimAngle + Math.PI/2) * bob;
+            handY = this.y + Math.sin(this.aimAngle) * 18 - Math.cos(this.aimAngle + Math.PI/2) * bob;
+        }
+
+        // Calculate resting arm/hand details based on weapon type
+        const restingShoulderX = this.x + (isAimingLeft ? 8 : -8);
+        const restingShoulderY = this.y + 4;
+        
+        let restingHandX, restingHandY;
+        let drawShield = false;
+        let drawMagicCharge = false;
+
+        const maxCooldown = 60 / this.attackSpeed;
+        const cooldownRatio = this.shootCooldown > 0 ? (this.shootCooldown / maxCooldown) : 0;
+
+        if (this.currentWeapon === 'bow') {
+            // Resting hand draws the string nock back!
+            const pullDist = cooldownRatio * 9;
+            restingHandX = handX - Math.cos(this.aimAngle) * pullDist;
+            restingHandY = handY - Math.sin(this.aimAngle) * pullDist;
+        } else if (this.currentWeapon === 'magic') {
+            // Resting hand is raised channeling energy
+            restingHandX = restingShoulderX + (isAimingLeft ? 5 : -5);
+            restingHandY = this.y - 4;
+            drawMagicCharge = true;
+        } else {
+            // Sword: holding a round buckler shield in the off hand
+            restingHandX = restingShoulderX + (isAimingLeft ? 4 : -4);
+            restingHandY = this.y + 11;
+            drawShield = true;
         }
 
         // 1. Draw Resting Arm
-        const restingShoulderX = this.x + (isAimingLeft ? 8 : -8);
-        const restingShoulderY = this.y + 4;
-        const restingHandX = restingShoulderX;
-        const restingHandY = this.y + 11;
-
         ctx.strokeStyle = '#090d16'; // black sleeve
         ctx.lineWidth = 4.5;
         ctx.lineCap = 'round';
@@ -912,10 +935,41 @@ export class Player {
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#fed7aa'; // hand
+        ctx.fillStyle = '#fed7aa'; // resting skin hand
         ctx.beginPath();
         ctx.arc(restingHandX, restingHandY, 2.2, 0, Math.PI*2);
         ctx.fill();
+
+        if (drawShield) {
+            // Steel buckler shield
+            ctx.save();
+            ctx.fillStyle = '#334155';
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.arc(restingHandX, restingHandY, 6.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            // Shield boss center
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(restingHandX, restingHandY, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        if (drawMagicCharge) {
+            // Glowing magical energy orb near the channeling hand
+            const mPulse = Math.sin(Date.now() * 0.02) * 2;
+            ctx.save();
+            ctx.shadowBlur = 8 + mPulse * 2;
+            ctx.shadowColor = '#a855f7';
+            ctx.fillStyle = 'rgba(232, 121, 249, 0.85)';
+            ctx.beginPath();
+            ctx.arc(restingHandX, restingHandY - 2, 3.5 + mPulse * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
 
         // 2. Draw Active Arm (Extending to hold the weapon)
         ctx.strokeStyle = '#090d16'; // black sleeve
@@ -943,41 +997,44 @@ export class Player {
         ctx.save();
         
         if (this.currentWeapon === 'sword') {
+            let swordAngle;
             if (this.swordSlash) {
                 const sweep = Math.PI * 0.75;
                 const progressRatio = this.swordSlash.progress / this.swordSlash.max;
-                const currentAngle = this.swordSlash.angle - sweep / 2 + (sweep * progressRatio);
-                ctx.translate(handX, handY);
-                ctx.rotate(currentAngle + Math.PI / 2);
+                swordAngle = this.swordSlash.angle - sweep / 2 + (sweep * progressRatio);
             } else {
-                ctx.translate(handX, handY);
-                ctx.rotate(this.aimAngle + Math.PI / 2);
+                swordAngle = this.aimAngle;
             }
+
+            ctx.translate(handX, handY);
+            ctx.rotate(swordAngle + Math.PI / 2);
             
             // Draw Vector Sword
             ctx.save();
-            ctx.fillStyle = '#eab308';
-            ctx.fillRect(-8, -4, 16, 3); // guard
+            ctx.fillStyle = '#eab308'; // guard
+            ctx.fillRect(-8, -4, 16, 3);
             
-            ctx.fillStyle = '#78350f';
-            ctx.fillRect(-2.5, -1, 5, 10); // handle
+            ctx.fillStyle = '#78350f'; // handle
+            ctx.fillRect(-2.5, -1, 5, 10);
             
-            ctx.fillStyle = '#eab308';
+            ctx.fillStyle = '#eab308'; // pommel
             ctx.beginPath();
             ctx.arc(0, 10, 2.5, 0, Math.PI * 2);
             ctx.fill();
             
+            // Glow overlay for sword swings
             if (this.swordSlash) {
-                ctx.shadowBlur = 15;
+                ctx.shadowBlur = 18;
                 ctx.shadowColor = '#c084fc';
-                ctx.strokeStyle = 'rgba(192, 132, 252, 0.5)';
-                ctx.lineWidth = 8;
+                ctx.strokeStyle = 'rgba(192, 132, 252, 0.65)';
+                ctx.lineWidth = 7;
                 ctx.beginPath();
                 ctx.moveTo(0, -4);
                 ctx.lineTo(0, -32);
                 ctx.stroke();
             }
             
+            // Blade
             ctx.fillStyle = '#f1f5f9';
             ctx.strokeStyle = '#94a3b8';
             ctx.lineWidth = 1.5;
@@ -993,86 +1050,122 @@ export class Player {
             ctx.restore();
             
         } else if (this.currentWeapon === 'bow') {
-            ctx.translate(handX, handY);
+            const pullDist = cooldownRatio * 9;
+            
+            // Tiny recoil pushback after release
+            const recoilX = (this.shootCooldown > 0 && this.shootCooldown < 10) ? Math.sin((this.shootCooldown / 10) * Math.PI) * 4 : 0;
+
+            ctx.translate(handX - Math.cos(this.aimAngle) * recoilX, handY - Math.sin(this.aimAngle) * recoilX);
             ctx.rotate(this.aimAngle + Math.PI / 2);
             
-            // Draw Vector Bow
+            // Draw Bow limbs with bezier curves so they look bent under tension!
             ctx.save();
-            ctx.strokeStyle = '#b45309';
+            ctx.strokeStyle = '#b45309'; // wood color
             ctx.lineWidth = 3.5;
+            ctx.lineCap = 'round';
+            
+            // Bend variables based on string pull
+            const flexX = Math.sin(-cooldownRatio * 0.15) * 8;
+            const flexY = cooldownRatio * 2;
+
+            const tipUpperX = flexX;
+            const tipUpperY = -13 + flexY;
+            const tipLowerX = flexX;
+            const tipLowerY = 13 - flexY;
+
+            // Draw upper bent arm
             ctx.beginPath();
-            ctx.arc(0, 0, 12, -Math.PI * 0.85, -Math.PI * 0.15);
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(-6 - cooldownRatio * 2, -6, -6 - cooldownRatio * 2, -10, tipUpperX, tipUpperY);
             ctx.stroke();
-            
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 4;
+
+            // Draw lower bent arm
             ctx.beginPath();
-            ctx.arc(0, 0, 12, -Math.PI * 0.55, -Math.PI * 0.45);
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(-6 - cooldownRatio * 2, 6, -6 - cooldownRatio * 2, 10, tipLowerX, tipLowerY);
             ctx.stroke();
-            
-            const maxCooldown = 60 / this.attackSpeed;
-            const pullRatio = this.shootCooldown > 0 ? (this.shootCooldown / maxCooldown) : 0;
-            const pullDist = pullRatio * 7;
-            
-            ctx.strokeStyle = 'rgba(226, 232, 240, 0.8)';
+
+            // Draw golden grip bindings
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect(-2, -2, 4, 4);
+
+            // Draw string
+            ctx.strokeStyle = 'rgba(241, 245, 249, 0.9)';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(-11, -4);
-            ctx.lineTo(0, pullDist);
-            ctx.lineTo(11, -4);
+            ctx.moveTo(tipUpperX, tipUpperY);
+            ctx.lineTo(-pullDist, 0); // string pulled back
+            ctx.lineTo(tipLowerX, tipLowerY);
             ctx.stroke();
             
+            // Draw nocked arrow if cooldown/charge is active
             if (this.shootCooldown > 0) {
+                // Arrow shaft
                 ctx.strokeStyle = '#78350f';
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 1.6;
                 ctx.beginPath();
-                ctx.moveTo(0, pullDist);
-                ctx.lineTo(0, pullDist - 16);
+                ctx.moveTo(-pullDist, 0);
+                ctx.lineTo(-pullDist + 18, 0);
                 ctx.stroke();
                 
-                ctx.fillStyle = '#cbd5e1';
+                // Slate arrow head
+                ctx.fillStyle = '#94a3b8';
                 ctx.beginPath();
-                ctx.moveTo(0, pullDist - 16);
-                ctx.lineTo(-2.5, pullDist - 12);
-                ctx.lineTo(2.5, pullDist - 12);
+                ctx.moveTo(-pullDist + 18, 0);
+                ctx.lineTo(-pullDist + 14, -2.5);
+                ctx.lineTo(-pullDist + 14, 2.5);
                 ctx.closePath();
                 ctx.fill();
+
+                // Fletchings
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(-pullDist - 1.5, -2, 2.5, 4);
             }
             ctx.restore();
             
         } else if (this.currentWeapon === 'magic') {
+            // Apply slight cast tilt forward during cooldown
+            const castTilt = cooldownRatio > 0 ? Math.sin(cooldownRatio * Math.PI) * 0.4 : 0;
             ctx.translate(handX, handY);
-            ctx.rotate(this.aimAngle + Math.PI / 2);
+            ctx.rotate(this.aimAngle + Math.PI / 2 - castTilt);
             
-            // Draw Vector Magic Staff
+            // Draw Magic Staff
             ctx.save();
-            ctx.fillStyle = '#5c2d91';
-            ctx.fillRect(-2, -6, 4, 24);
+            ctx.fillStyle = '#5c2d91'; // purple wood
+            ctx.fillRect(-2.2, -6, 4.4, 25);
             
+            // Golden wings holding crystal
             ctx.fillStyle = '#eab308';
             ctx.beginPath();
             ctx.arc(0, -9, 5, 0, Math.PI, true);
             ctx.fill();
-            
-            ctx.fillRect(-4, -12, 8, 3);
+            ctx.fillRect(-4, -12, 8, 3.5);
             
             const pulse = Math.sin(Date.now() * 0.015) * 1.5;
-            const crystalRadius = 4 + pulse;
+            const crystalRadius = 4.2 + (cooldownRatio > 0 ? 1.5 : pulse * 0.4);
             
-            ctx.shadowBlur = 12 + pulse * 3;
+            // Draw expanding mana shockwaves if cast cooldown active
+            if (cooldownRatio > 0) {
+                ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(0, -12, 8 + (1 - cooldownRatio) * 14, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.shadowBlur = (cooldownRatio > 0 ? 20 : 12) + pulse * 2;
             ctx.shadowColor = '#06b6d4';
-            ctx.fillStyle = '#22d3ee';
+            ctx.fillStyle = '#22d3ee'; // bright cyan crystal core
             ctx.beginPath();
             ctx.arc(0, -12, crystalRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
+        ctx.restore();
+        ctx.restore();
+
         this.x = origX;
         this.y = origY;
-        ctx.restore();
-
-        ctx.restore();
-
         ctx.restore();
     }
 }
