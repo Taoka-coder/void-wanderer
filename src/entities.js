@@ -881,14 +881,15 @@ export class Player {
             const sweep = Math.PI * 0.75;
             const progressRatio = this.swordSlash.progress / this.swordSlash.max;
             const currentAngle = this.swordSlash.angle - sweep / 2 + (sweep * progressRatio);
-            // Extend hand further outwards to 30px during slash
-            handX = this.x + Math.cos(currentAngle) * 30;
-            handY = this.y + Math.sin(currentAngle) * 30;
+            // Fully extend arm during slash sweep (36px outwards)
+            handX = this.x + Math.cos(currentAngle) * 36;
+            handY = this.y + Math.sin(currentAngle) * 36;
         } else {
-            // Extend hand further to 26px so it doesn't look stuck to the shoulder!
+            // Extend arms further outwards (28-30px) so the fists clearly clear the shoulders!
             const bob = Math.sin(Date.now() * 0.005) * 1.2;
-            handX = this.x + Math.cos(this.aimAngle) * 26 + Math.sin(this.aimAngle + Math.PI/2) * bob;
-            handY = this.y + Math.sin(this.aimAngle) * 26 - Math.cos(this.aimAngle + Math.PI/2) * bob;
+            const dist = this.currentWeapon === 'bow' ? 28 : 30;
+            handX = this.x + Math.cos(this.aimAngle) * dist + Math.sin(this.aimAngle + Math.PI/2) * bob;
+            handY = this.y + Math.sin(this.aimAngle) * dist - Math.cos(this.aimAngle + Math.PI/2) * bob;
         }
 
         // Calculate resting arm/hand details based on weapon type
@@ -1012,17 +1013,22 @@ export class Player {
             ctx.rotate(swordAngle + Math.PI / 2);
             
             // Draw Vector Sword
+            // Hand at (0,0) is at the POMMEL. Handle goes forward so pommel doesn't clip shoulder.
             ctx.save();
-            ctx.fillStyle = '#eab308'; // guard
-            ctx.fillRect(-8, -4, 16, 3);
             
-            ctx.fillStyle = '#78350f'; // handle
-            ctx.fillRect(-2.5, -1, 5, 10);
-            
-            ctx.fillStyle = '#eab308'; // pommel
+            // Pommel (centered at 0, 0)
+            ctx.fillStyle = '#eab308';
             ctx.beginPath();
-            ctx.arc(0, 10, 2.5, 0, Math.PI * 2);
+            ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
             ctx.fill();
+
+            // Handle (goes forward from 0 to -8)
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(-2, -8, 4, 8);
+            
+            // Guard (at -9)
+            ctx.fillStyle = '#eab308';
+            ctx.fillRect(-8, -10.5, 16, 2.5);
             
             // Glow overlay for sword swings
             if (this.swordSlash) {
@@ -1031,21 +1037,21 @@ export class Player {
                 ctx.strokeStyle = 'rgba(192, 132, 252, 0.65)';
                 ctx.lineWidth = 7;
                 ctx.beginPath();
-                ctx.moveTo(0, -4);
-                ctx.lineTo(0, -32);
+                ctx.moveTo(0, -10);
+                ctx.lineTo(0, -38);
                 ctx.stroke();
             }
             
-            // Blade
+            // Blade (goes forward from -10 to -38)
             ctx.fillStyle = '#f1f5f9';
             ctx.strokeStyle = '#94a3b8';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(-3, -4);
-            ctx.lineTo(3, -4);
-            ctx.lineTo(2, -28);
-            ctx.lineTo(0, -32);
-            ctx.lineTo(-2, -28);
+            ctx.moveTo(-3, -10.5);
+            ctx.lineTo(3, -10.5);
+            ctx.lineTo(2, -34);
+            ctx.lineTo(0, -38);
+            ctx.lineTo(-2, -34);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
@@ -1071,9 +1077,9 @@ export class Player {
             const flexY = cooldownRatio * 2;
 
             const tipUpperX = flexX;
-            const tipUpperY = -13 + flexY;
+            const tipUpperY = -14 + flexY;
             const tipLowerX = flexX;
-            const tipLowerY = 13 - flexY;
+            const tipLowerY = 14 - flexY;
 
             // Draw upper bent arm
             ctx.beginPath();
@@ -1132,16 +1138,17 @@ export class Player {
             ctx.rotate(this.aimAngle + Math.PI / 2 - castTilt);
             
             // Draw Magic Staff
+            // Staff shaft shifted forward (goes from -18 to +4) so bottom doesn't hit shoulder
             ctx.save();
             ctx.fillStyle = '#5c2d91'; // purple wood
-            ctx.fillRect(-2.2, -6, 4.4, 25);
+            ctx.fillRect(-2.2, -18, 4.4, 22);
             
             // Golden wings holding crystal
             ctx.fillStyle = '#eab308';
             ctx.beginPath();
-            ctx.arc(0, -9, 5, 0, Math.PI, true);
+            ctx.arc(0, -21, 5, 0, Math.PI, true);
             ctx.fill();
-            ctx.fillRect(-4, -12, 8, 3.5);
+            ctx.fillRect(-4, -24, 8, 3.5);
             
             const pulse = Math.sin(Date.now() * 0.015) * 1.5;
             const crystalRadius = 4.2 + (cooldownRatio > 0 ? 1.5 : pulse * 0.4);
@@ -1151,7 +1158,7 @@ export class Player {
                 ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(0, -12, 8 + (1 - cooldownRatio) * 14, 0, Math.PI * 2);
+                ctx.arc(0, -24, 8 + (1 - cooldownRatio) * 14, 0, Math.PI * 2);
                 ctx.stroke();
             }
 
@@ -1159,7 +1166,7 @@ export class Player {
             ctx.shadowColor = '#06b6d4';
             ctx.fillStyle = '#22d3ee'; // bright cyan crystal core
             ctx.beginPath();
-            ctx.arc(0, -12, crystalRadius, 0, Math.PI * 2);
+            ctx.arc(0, -24, crystalRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
