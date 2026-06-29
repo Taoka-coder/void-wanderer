@@ -881,13 +881,14 @@ export class Player {
             const sweep = Math.PI * 0.75;
             const progressRatio = this.swordSlash.progress / this.swordSlash.max;
             const currentAngle = this.swordSlash.angle - sweep / 2 + (sweep * progressRatio);
-            handX = this.x + Math.cos(currentAngle) * 24;
-            handY = this.y + Math.sin(currentAngle) * 24;
+            // Extend hand further outwards to 30px during slash
+            handX = this.x + Math.cos(currentAngle) * 30;
+            handY = this.y + Math.sin(currentAngle) * 30;
         } else {
-            // Apply slight idle weapon bobbing
+            // Extend hand further to 26px so it doesn't look stuck to the shoulder!
             const bob = Math.sin(Date.now() * 0.005) * 1.2;
-            handX = this.x + Math.cos(this.aimAngle) * 18 + Math.sin(this.aimAngle + Math.PI/2) * bob;
-            handY = this.y + Math.sin(this.aimAngle) * 18 - Math.cos(this.aimAngle + Math.PI/2) * bob;
+            handX = this.x + Math.cos(this.aimAngle) * 26 + Math.sin(this.aimAngle + Math.PI/2) * bob;
+            handY = this.y + Math.sin(this.aimAngle) * 26 - Math.cos(this.aimAngle + Math.PI/2) * bob;
         }
 
         // Calculate resting arm/hand details based on weapon type
@@ -935,40 +936,46 @@ export class Player {
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#fed7aa'; // resting skin hand
-        ctx.beginPath();
-        ctx.arc(restingHandX, restingHandY, 2.2, 0, Math.PI*2);
-        ctx.fill();
-
-        if (drawShield) {
-            // Steel buckler shield
-            ctx.save();
-            ctx.fillStyle = '#334155';
-            ctx.strokeStyle = '#fbbf24';
-            ctx.lineWidth = 1.2;
+        // If not bow, draw resting hand fist/accessories under shield/orb
+        if (this.currentWeapon !== 'bow') {
+            ctx.fillStyle = '#fed7aa'; // skin fist
+            ctx.strokeStyle = '#090d16';
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.arc(restingHandX, restingHandY, 6.5, 0, Math.PI * 2);
+            ctx.arc(restingHandX, restingHandY, 2.8, 0, Math.PI*2);
             ctx.fill();
             ctx.stroke();
-            // Shield boss center
-            ctx.fillStyle = '#fbbf24';
-            ctx.beginPath();
-            ctx.arc(restingHandX, restingHandY, 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
 
-        if (drawMagicCharge) {
-            // Glowing magical energy orb near the channeling hand
-            const mPulse = Math.sin(Date.now() * 0.02) * 2;
-            ctx.save();
-            ctx.shadowBlur = 8 + mPulse * 2;
-            ctx.shadowColor = '#a855f7';
-            ctx.fillStyle = 'rgba(232, 121, 249, 0.85)';
-            ctx.beginPath();
-            ctx.arc(restingHandX, restingHandY - 2, 3.5 + mPulse * 0.4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
+            if (drawShield) {
+                // Steel buckler shield
+                ctx.save();
+                ctx.fillStyle = '#334155';
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.arc(restingHandX, restingHandY, 7.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                // Shield boss center
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.arc(restingHandX, restingHandY, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            if (drawMagicCharge) {
+                // Glowing magical energy orb near the channeling hand
+                const mPulse = Math.sin(Date.now() * 0.02) * 2;
+                ctx.save();
+                ctx.shadowBlur = 8 + mPulse * 2;
+                ctx.shadowColor = '#a855f7';
+                ctx.fillStyle = 'rgba(232, 121, 249, 0.85)';
+                ctx.beginPath();
+                ctx.arc(restingHandX, restingHandY - 2, 3.5 + mPulse * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
         }
 
         // 2. Draw Active Arm (Extending to hold the weapon)
@@ -987,11 +994,6 @@ export class Player {
         ctx.arc(shoulderX, shoulderY, 3.5, 0, Math.PI*2);
         ctx.fill();
         ctx.stroke();
-
-        ctx.fillStyle = '#fed7aa'; // active skin hand
-        ctx.beginPath();
-        ctx.arc(handX, handY, 2.2, 0, Math.PI*2);
-        ctx.fill();
 
         // 3. Draw active weapon in hand
         ctx.save();
@@ -1163,6 +1165,27 @@ export class Player {
         }
         ctx.restore();
         ctx.restore();
+
+        // 4. DRAW FISTS ON TOP OF WEAPON HANDLES (makes it look like they are gripping them in fists!)
+        // Active Hand Fist
+        ctx.fillStyle = '#fed7aa'; // active skin fist
+        ctx.strokeStyle = '#090d16'; // dark outline for definition
+        ctx.lineWidth = 1.0;
+        ctx.beginPath();
+        ctx.arc(handX, handY, 3.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // If bow, draw resting hand fist on top of string/arrow nock
+        if (this.currentWeapon === 'bow') {
+            ctx.fillStyle = '#fed7aa';
+            ctx.strokeStyle = '#090d16';
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            ctx.arc(restingHandX, restingHandY, 3.0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
 
         this.x = origX;
         this.y = origY;
