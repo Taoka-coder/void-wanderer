@@ -83,7 +83,7 @@ export function performMysteryGamble(player, onFinishCallback, playAudioCallback
     coinContainer.classList.remove('hidden');
 
     // Trigger spin CSS animation
-    coin.classList.remove('spin-blessing', 'spin-curse');
+    coin.classList.remove('spin-blessing', 'spin-curse', 'active-blessing', 'active-curse');
     void coin.offsetWidth; // Reflow reset
     
     if (playAudioCallback) playAudioCallback('gamble_start');
@@ -102,6 +102,7 @@ export function performMysteryGamble(player, onFinishCallback, playAudioCallback
         if (playAudioCallback) playAudioCallback('gamble_end');
 
         if (isBlessing) {
+            coin.classList.add('active-blessing');
             // Apply Random blessing
             const option = Math.floor(Math.random() * 4);
             if (option === 0) {
@@ -122,6 +123,7 @@ export function performMysteryGamble(player, onFinishCallback, playAudioCallback
                 statColor = '#ef4444';
             }
         } else {
+            coin.classList.add('active-curse');
             // Apply Random Curse
             const option = Math.floor(Math.random() * 4);
             if (option === 0) {
@@ -165,6 +167,7 @@ export function performMysteryGamble(player, onFinishCallback, playAudioCallback
             // Reset overlay UI states
             overlay.classList.add('hidden');
             coinContainer.classList.add('hidden');
+            coin.classList.remove('spin-blessing', 'spin-curse', 'active-blessing', 'active-curse');
             acceptBtn.style.display = '';
             declineBtn.style.display = '';
             dialogText.innerHTML = '"Fate is a coin floating in the void. Do you dare to flip it? Half of my deals lead to ultimate power... the other half to decay. Choose wisely."';
