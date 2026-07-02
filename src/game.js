@@ -3167,38 +3167,80 @@ class Game {
                 this.ctx.beginPath();
                 this.ctx.arc(obs.x - 5, obs.y - 5, 5, 0, Math.PI*2);
                 this.ctx.fill();
-                this.ctx.restore();
-
-            } else if (obs.type === 'bone' && obs.health > 0) {
-                // Piles of white bones
-                this.ctx.save();
-                this.ctx.fillStyle = '#e2e8f0';
-                this.ctx.strokeStyle = '#94a3b8';
-                this.ctx.lineWidth = 1;
-                
-                // Cross bone 1
-                this.ctx.translate(obs.x, obs.y);
-                this.ctx.rotate(0.5);
-                this.ctx.fillRect(-12, -3, 24, 6);
-                this.ctx.beginPath();
-                this.ctx.arc(-12, -3, 3, 0, Math.PI*2);
-                this.ctx.arc(-12, 3, 3, 0, Math.PI*2);
-                this.ctx.arc(12, -3, 3, 0, Math.PI*2);
-                this.ctx.arc(12, 3, 3, 0, Math.PI*2);
-                this.ctx.fill();
-
-                // Cross bone 2
-                this.ctx.rotate(1.2);
-                this.ctx.fillRect(-12, -3, 24, 6);
-                this.ctx.beginPath();
-                this.ctx.arc(-12, -3, 3, 0, Math.PI*2);
-                this.ctx.arc(-12, 3, 3, 0, Math.PI*2);
-                this.ctx.arc(12, -3, 3, 0, Math.PI*2);
-                this.ctx.arc(12, 3, 3, 0, Math.PI*2);
-                this.ctx.fill();
 
                 this.ctx.restore();
 
+            } else if (obs.type === 'bone') {
+                if (obs.health > 0) {
+                    // Piles of white bones
+                    this.ctx.save();
+                    this.ctx.fillStyle = '#e2e8f0';
+                    this.ctx.strokeStyle = '#94a3b8';
+                    this.ctx.lineWidth = 1;
+                    
+                    // Cross bone 1
+                    this.ctx.translate(obs.x, obs.y);
+                    this.ctx.rotate(0.5);
+                    this.ctx.fillRect(-12, -3, 24, 6);
+                    this.ctx.beginPath();
+                    this.ctx.arc(-12, -3, 3, 0, Math.PI*2);
+                    this.ctx.arc(-12, 3, 3, 0, Math.PI*2);
+                    this.ctx.arc(12, -3, 3, 0, Math.PI*2);
+                    this.ctx.arc(12, 3, 3, 0, Math.PI*2);
+                    this.ctx.fill();
+
+                    // Cross bone 2
+                    this.ctx.rotate(1.2);
+                    this.ctx.fillRect(-12, -3, 24, 6);
+                    this.ctx.beginPath();
+                    this.ctx.arc(-12, -3, 3, 0, Math.PI*2);
+                    this.ctx.arc(-12, 3, 3, 0, Math.PI*2);
+                    this.ctx.arc(12, -3, 3, 0, Math.PI*2);
+                    this.ctx.arc(12, 3, 3, 0, Math.PI*2);
+                    this.ctx.fill();
+
+                    this.ctx.restore();
+                } else if (obs.breakTimer && obs.breakTimer > 0) {
+                    obs.breakTimer--;
+                    const progress = 1 - (obs.breakTimer / obs.maxBreakTimer);
+                    const alpha = obs.breakTimer / obs.maxBreakTimer;
+                    
+                    this.ctx.save();
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.fillStyle = '#e2e8f0';
+                    this.ctx.strokeStyle = '#94a3b8';
+                    this.ctx.lineWidth = 1;
+                    
+                    const dist = progress * 15;
+                    
+                    // Bone 1 flies up-left & rotates clockwise
+                    this.ctx.save();
+                    this.ctx.translate(obs.x - dist * 0.7, obs.y - dist * 0.7);
+                    this.ctx.rotate(0.5 + progress * 0.5);
+                    this.ctx.fillRect(-12, -3, 24, 6);
+                    this.ctx.beginPath();
+                    this.ctx.arc(-12, -3, 3, 0, Math.PI*2);
+                    this.ctx.arc(-12, 3, 3, 0, Math.PI*2);
+                    this.ctx.arc(12, -3, 3, 0, Math.PI*2);
+                    this.ctx.arc(12, 3, 3, 0, Math.PI*2);
+                    this.ctx.fill();
+                    this.ctx.restore();
+
+                    // Bone 2 flies down-right & rotates counter-clockwise
+                    this.ctx.save();
+                    this.ctx.translate(obs.x + dist * 0.7, obs.y + dist * 0.7);
+                    this.ctx.rotate(0.5 + 1.2 - progress * 0.5);
+                    this.ctx.fillRect(-12, -3, 24, 6);
+                    this.ctx.beginPath();
+                    this.ctx.arc(-12, -3, 3, 0, Math.PI*2);
+                    this.ctx.arc(-12, 3, 3, 0, Math.PI*2);
+                    this.ctx.arc(12, -3, 3, 0, Math.PI*2);
+                    this.ctx.arc(12, 3, 3, 0, Math.PI*2);
+                    this.ctx.fill();
+                    this.ctx.restore();
+
+                    this.ctx.restore();
+                }
             } else if (obs.type === 'campfire') {
                 this.ctx.save();
 
