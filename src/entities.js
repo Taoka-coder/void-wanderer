@@ -641,6 +641,8 @@ export class Player {
                         if (Math.abs(diffAngle) < swingAngle / 2) {
                             if (obs.type === 'bone') {
                                 obs.health = 0;
+                                obs.breakTimer = 30;
+                                obs.maxBreakTimer = 30;
                                 spawnBoneShards(obs.x, obs.y, 10);
                                 this.dropLoot(obs.x, obs.y, currentRoom);
                             } else {
@@ -1455,6 +1457,8 @@ export class Projectile {
                     if (obs.type === 'bone') {
                         obs.health -= 1;
                         if (obs.health <= 0) {
+                            obs.breakTimer = 30;
+                            obs.maxBreakTimer = 30;
                             spawnBoneShards(obs.x, obs.y, 10);
                             // Drop loot
                             const r = Math.random();
