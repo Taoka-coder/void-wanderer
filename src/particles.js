@@ -19,6 +19,8 @@ class Particle {
         this.text = options.text || '';
         this.fontSize = options.fontSize || 12;
         this.glow = options.glow || false;
+        this.angle = options.angle || 0;
+        this.rotSpeed = options.rotSpeed || 0;
     }
 
     update() {
@@ -27,6 +29,9 @@ class Particle {
         this.vx *= this.drag;
         this.vy *= this.drag;
         this.vy += this.gravity;
+        if (this.rotSpeed) {
+            this.angle = (this.angle || 0) + this.rotSpeed;
+        }
         this.life--;
         this.alpha = Math.max(0, this.life / this.maxLife);
     }
@@ -45,6 +50,20 @@ class Particle {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             ctx.fill();
+        } else if (this.type === 'bone_shard') {
+            ctx.fillStyle = this.color;
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1;
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            ctx.beginPath();
+            // Draw small irregular triangular splinter
+            ctx.moveTo(-this.size, -this.size / 2);
+            ctx.lineTo(this.size, 0);
+            ctx.lineTo(-this.size, this.size / 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
         } else if (this.type === 'smoke') {
             ctx.fillStyle = this.color;
             ctx.beginPath();
@@ -189,6 +208,27 @@ export function spawnLightningExplosion(x, y, radius = 40) {
             life: 15 + Math.random() * 15,
             drag: 0.91,
             glow: true
+        }));
+    }
+}
+
+export function spawnBoneShards(x, y, count = 10) {
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 3.0;
+        particles.push(new Particle({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 3 + Math.random() * 4,
+            color: '#e2e8f0', // bone-white
+            life: 20 + Math.random() * 20,
+            drag: 0.94,
+            gravity: 0.12, // slight fall
+            type: 'bone_shard',
+            angle: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 0.2
         }));
     }
 }
