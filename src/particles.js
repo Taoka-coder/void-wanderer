@@ -21,6 +21,10 @@ class Particle {
         this.glow = options.glow || false;
         this.angle = options.angle || 0;
         this.rotSpeed = options.rotSpeed || 0;
+        this.startX = options.startX || 0;
+        this.startY = options.startY || 0;
+        this.endX = options.endX || 0;
+        this.endY = options.endY || 0;
     }
 
     update() {
@@ -64,6 +68,56 @@ class Particle {
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
+        } else if (this.type === 'lightning_bolt') {
+            ctx.save();
+            
+            const dx = this.endX - this.startX;
+            const dy = this.endY - this.startY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist > 5) {
+                const segments = Math.max(3, Math.floor(dist / 16));
+                const px = -dy / dist;
+                const py = dx / dist;
+                
+                const points = [{ x: this.startX, y: this.startY }];
+                for (let i = 1; i < segments; i++) {
+                    const ratio = i / segments;
+                    const tx = this.startX + dx * ratio;
+                    const ty = this.startY + dy * ratio;
+                    const offset = (Math.random() - 0.5) * 14 * (1 - Math.abs(ratio - 0.5) * 0.5);
+                    points.push({ x: tx + px * offset, y: ty + py * offset });
+                }
+                points.push({ x: this.endX, y: this.endY });
+                
+                // 1. Draw outer cyan glow
+                ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#06b6d4';
+                
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.stroke();
+                
+                // 2. Draw inner white core
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2.0;
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.stroke();
+            }
+            
+            ctx.restore();
         } else if (this.type === 'smoke') {
             ctx.fillStyle = this.color;
             ctx.beginPath();
@@ -210,6 +264,21 @@ export function spawnLightningExplosion(x, y, radius = 40) {
             glow: true
         }));
     }
+}
+
+export function spawnLightningBolt(startX, startY, endX, endY, color = '#22d3ee', size = 2.2, life = 6) {
+    particles.push(new Particle({
+        x: startX,
+        y: startY,
+        startX: startX,
+        startY: startY,
+        endX: endX,
+        endY: endY,
+        color: color,
+        size: size,
+        life: life,
+        type: 'lightning_bolt'
+    }));
 }
 
 export function spawnBoneShards(x, y, count = 10) {
