@@ -199,6 +199,7 @@ class Game {
         this.dungeon = null;
         this.player = null;
         this.projectiles = [];
+        this.screenShake = 0;
         this.mysteryManNPC = null;
         this.mysteryManInteractedThisLevel = false;
         this.shopkeeperNPC = null;
@@ -1173,6 +1174,12 @@ class Game {
     update() {
         if (this.currentState !== this.states.PLAYING) return;
 
+        // Decay screen shake
+        if (this.screenShake > 0) {
+            this.screenShake *= 0.9;
+            if (this.screenShake < 0.1) this.screenShake = 0;
+        }
+
         // 1. Check Level Transitioning
         if (this.transitioning) {
             this.transitionTimer--;
@@ -2059,6 +2066,14 @@ class Game {
         if (!room) return;
 
         this.ctx.save();
+
+        // Apply Screen Shake inside the camera context
+        if (this.screenShake > 0) {
+            const dx = (Math.random() - 0.5) * this.screenShake;
+            const dy = (Math.random() - 0.5) * this.screenShake;
+            this.ctx.translate(dx, dy);
+        }
+
         this.ctx.translate(100, 140);
         this.ctx.scale(0.75, 0.75);
 
@@ -3394,6 +3409,254 @@ class Game {
             }
         }
 
+        // Draw Ambient Drifting Mist/Fog inside the room
+        const drawAmbientMist = (ctx) => {
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            const time = Date.now() * 0.00008;
+            
+            // Draw slow moving mist clouds
+            for (let i = 0; i < 3; i++) {
+                const cx = 400 + Math.sin(time + i * 2.3) * 200 + Math.cos(time * 0.7 + i) * 60;
+                const cy = 300 + Math.cos(time - i * 1.7) * 120;
+                const size = 180 + Math.sin(time * 1.5 + i) * 30;
+                
+                const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size);
+                grad.addColorStop(0, 'rgba(148, 163, 184, 0.022)');
+                grad.addColorStop(0.5, 'rgba(148, 163, 184, 0.008)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = grad;
+                
+                ctx.beginPath();
+                ctx.arc(cx, cy, size, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.restore();
+        };
+        drawAmbientMist(this.ctx);
+
+        // Dynamic Lighting Pass
+        if (room) {
+            const lCanvas = this.lightingCanvas || (this.lightingCanvas = document.createElement('canvas'));
+            if (lCanvas.width !== 800) { lCanvas.width = 800; lCanvas.height = 600; }
+            const lCtx = lCanvas.getContext('2d');
+
+            // Determine ambient darkness base color and opacity
+            let darkColor = 'rgba(5, 5, 12, 0.86)'; // Default: cold dark blue/black
+            if (room.type === ROOM_TYPES.BOSS) {
+                const bossIndex = Math.min(this.level - 1, 4);
+                if (bossIndex === 3) {
+                    darkColor = 'rgba(20, 4, 2, 0.88)'; // Fire boss: smoky reddish black
+                } else if (bossIndex === 4) {
+                    darkColor = 'rgba(8, 2, 15, 0.92)'; // Void boss: heavy dark purple
+                } else {
+                    darkColor = 'rgba(4, 8, 4, 0.88)'; // Spider/moss green boss
+                }
+            } else if (room.type === ROOM_TYPES.SHOP) {
+                darkColor = 'rgba(18, 12, 8, 0.65)'; // Warm shop
+            } else if (room.type === ROOM_TYPES.MYSTERY) {
+                darkColor = 'rgba(15, 5, 20, 0.82)'; // Mysterious purple tint
+            } else if (room.type === ROOM_TYPES.ARTIFACT) {
+                darkColor = 'rgba(10, 5, 18, 0.85)'; // Runic purple-blue tint
+            } else {
+                // Regular levels
+                if (this.level === 4) {
+                    darkColor = 'rgba(18, 5, 3, 0.86)'; // Fire level tint
+                } else if (this.level === 5) {
+                    darkColor = 'rgba(10, 2, 18, 0.90)'; // Void level tint
+                }
+            }
+
+            // Clear offscreen context
+            lCtx.clearRect(0, 0, 800, 600);
+            
+            // Fill darkness only inside the room boundaries (64, 64) to (736, 536)
+            lCtx.fillStyle = darkColor;
+            lCtx.fillRect(64, 64, 672, 472);
+
+            // Set composite operation to cut holes
+            lCtx.globalCompositeOperation = 'destination-out';
+
+            // Gather all light sources: { x, y, r, opacity }
+            const lights = [];
+
+            // Player light
+            lights.push({
+                x: this.player.x,
+                y: this.player.y,
+                r: 135 + (this.player.specialSpellCharged ? 35 : 0) + Math.sin(Date.now() * 0.005) * 5,
+                opacity: 1.0
+            });
+
+            // Torches (Top & Bottom)
+            const torchPositions = [
+                { x: 240, y: 48, seed: 1 },
+                { x: 560, y: 48, seed: 2 },
+                { x: 240, y: 552, seed: 3 },
+                { x: 560, y: 552, seed: 4 }
+            ];
+            for (const t of torchPositions) {
+                lights.push({
+                    x: t.x,
+                    y: t.y,
+                    r: 80 + Math.sin(Date.now() * 0.015 + t.seed) * 5,
+                    opacity: 1.0
+                });
+            }
+
+            // Campfires
+            for (const obs of room.obstacles) {
+                if (obs.type === 'campfire' && !obs.extinguished) {
+                    lights.push({
+                        x: obs.x,
+                        y: obs.y,
+                        r: 125 + Math.sin(Date.now() * 0.02) * 8,
+                        opacity: 1.0
+                    });
+                }
+            }
+
+            // Boss Portal
+            if (room.type === ROOM_TYPES.BOSS && room.cleared) {
+                lights.push({
+                    x: 400,
+                    y: 300,
+                    r: 150 + Math.sin(Date.now() * 0.01) * 10,
+                    opacity: 1.0
+                });
+            }
+
+            // Projectiles
+            for (const p of this.projectiles) {
+                let pRadius = 35;
+                if (p.type === 'magic') pRadius = 80;
+                else if (p.type === 'fire') pRadius = 75;
+                else if (p.type === 'lightning') pRadius = 65;
+                lights.push({
+                    x: p.x,
+                    y: p.y,
+                    r: pRadius,
+                    opacity: 1.0
+                });
+            }
+
+            // Mystery Man / Shopkeeper
+            if (this.mysteryManNPC) {
+                lights.push({ x: this.mysteryManNPC.x, y: this.mysteryManNPC.y, r: 65, opacity: 0.85 });
+            }
+            if (this.shopkeeperNPC) {
+                lights.push({ x: this.shopkeeperNPC.x, y: this.shopkeeperNPC.y, r: 75, opacity: 0.85 });
+            }
+
+            // Drops (Artifacts / chests / coins / keys / hearts / mana)
+            for (const drop of room.drops) {
+                lights.push({
+                    x: drop.x,
+                    y: drop.y,
+                    r: drop.type === 'artifact' ? 70 : 40,
+                    opacity: 0.95
+                });
+            }
+
+            // Draw holes on offscreen canvas
+            for (const light of lights) {
+                const grad = lCtx.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.r);
+                grad.addColorStop(0, `rgba(255, 255, 255, ${light.opacity})`);
+                grad.addColorStop(0.4, `rgba(255, 255, 255, ${light.opacity * 0.45})`);
+                grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                lCtx.fillStyle = grad;
+                lCtx.beginPath();
+                lCtx.arc(light.x, light.y, light.r, 0, Math.PI * 2);
+                lCtx.fill();
+            }
+
+            // Draw darkness overlay on main canvas
+            this.ctx.drawImage(lCanvas, 0, 0);
+
+            // Colored lighting pass (using screen or lighter overlay)
+            this.ctx.save();
+            this.ctx.globalCompositeOperation = 'screen';
+
+            for (const light of lights) {
+                let color = 'rgba(219, 234, 254, 0.1)'; 
+                
+                if (light.x === this.player.x && light.y === this.player.y) {
+                    if (this.player.specialSpellCharged) {
+                        color = 'rgba(34, 211, 238, 0.18)'; 
+                    } else if (this.player.currentWeapon === 'magic') {
+                        color = 'rgba(168, 85, 247, 0.12)'; 
+                    } else {
+                        color = 'rgba(224, 242, 254, 0.08)'; 
+                    }
+                } else if (
+                    (light.x === 240 && light.y === 48) ||
+                    (light.x === 560 && light.y === 48) ||
+                    (light.x === 240 && light.y === 552) ||
+                    (light.x === 560 && light.y === 552)
+                ) {
+                    color = 'rgba(249, 115, 22, 0.22)';
+                } else {
+                    const isCampfire = room.obstacles.some(obs => obs.type === 'campfire' && obs.x === light.x && obs.y === light.y);
+                    if (isCampfire) {
+                        color = 'rgba(249, 115, 22, 0.32)';
+                    } else if (light.x === 400 && light.y === 300 && room.type === ROOM_TYPES.BOSS && room.cleared) {
+                        color = 'rgba(168, 85, 247, 0.3)'; 
+                    } else {
+                        const proj = this.projectiles.find(p => p.x === light.x && p.y === light.y);
+                        if (proj) {
+                            if (proj.type === 'fire') color = 'rgba(239, 68, 68, 0.35)';
+                            else if (proj.type === 'magic') color = 'rgba(168, 85, 247, 0.35)';
+                            else if (proj.type === 'lightning') color = 'rgba(34, 211, 238, 0.35)';
+                        } else {
+                            const drop = room.drops.find(d => d.x === light.x && d.y === light.y);
+                            if (drop) {
+                                if (drop.type === 'artifact') {
+                                    color = 'rgba(168, 85, 247, 0.25)'; 
+                                } else if (drop.type === 'coin') {
+                                    color = 'rgba(245, 158, 11, 0.25)'; 
+                                } else if (drop.type === 'heart') {
+                                    color = 'rgba(239, 68, 68, 0.2)'; 
+                                } else if (drop.type === 'mana') {
+                                    color = 'rgba(56, 189, 248, 0.2)'; 
+                                }
+                            }
+                        }
+                    }
+                }
+
+                const colorGrad = this.ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.r);
+                colorGrad.addColorStop(0, color);
+                colorGrad.addColorStop(0.5, color.replace(/[\d\.]+\)$/, '0.2)'));
+                colorGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                this.ctx.fillStyle = colorGrad;
+                this.ctx.beginPath();
+                this.ctx.arc(light.x, light.y, light.r, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            this.ctx.restore();
+        }
+
+        // Red hit flash vignette on player damage
+        if (this.player && this.player.invulnFrames > 30) {
+            this.ctx.save();
+            const flashIntensity = (this.player.invulnFrames - 30) / 30; // Max 1.0 down to 0
+            const flashGrad = this.ctx.createRadialGradient(400, 300, 180, 400, 300, 420);
+            flashGrad.addColorStop(0, 'rgba(239, 68, 68, 0)');
+            flashGrad.addColorStop(1, `rgba(239, 68, 68, ${flashIntensity * 0.35})`);
+            this.ctx.fillStyle = flashGrad;
+            this.ctx.fillRect(64, 64, 672, 472);
+            this.ctx.restore();
+        }
+
+        this.ctx.restore();
+
+        // Draw Screen-space static Vignette
+        this.ctx.save();
+        const vignetteGrad = this.ctx.createRadialGradient(400, 300, 320, 400, 300, 520);
+        vignetteGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vignetteGrad.addColorStop(1, 'rgba(2, 2, 4, 0.65)'); 
+        this.ctx.fillStyle = vignetteGrad;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.restore();
 
         // 12. Draw Room Transition Fade overlay
