@@ -267,6 +267,7 @@ export class Player {
         this.health -= actualAmount;
         // Necro Urn gives double invincibility frames (120 frames instead of 60)
         this.invulnFrames = this.hasArtifact('necro_urn') ? 120 : 60;
+        if (window.game) window.game.screenShake = Math.max(window.game.screenShake, 12);
 
         spawnBlood(this.x, this.y, 12);
         spawnFloatingText(this.x, this.y - 15, `-${actualAmount} HP`, '#ef4444', 16);
@@ -526,6 +527,7 @@ export class Player {
                     if (Math.abs(diffAngle) < swingAngle / 2) {
                         const kForce = 6;
                         mob.takeDamage(this.getDamage(), Math.cos(angleToMob) * kForce, Math.sin(angleToMob) * kForce);
+                        if (window.game) window.game.screenShake = Math.max(window.game.screenShake, 4.5);
                         if (this.hasArtifact('frozen_tear')) {
                             mob.slowTimer = 90;
                         }
@@ -588,6 +590,7 @@ export class Player {
 
         } else if (this.currentWeapon === 'bow') {
             this.shootCooldown = cooldownFrames;
+            if (window.game) window.game.screenShake = Math.max(window.game.screenShake, 1.5);
             if (playAudioCallback) playAudioCallback('arrow');
 
             const speed = 9;
@@ -612,6 +615,7 @@ export class Player {
 
             if (this.specialSpellCharged) {
                 // Shoot the strong lightning combo (paid on prep, so no extra mana taken here)
+                if (window.game) window.game.screenShake = Math.max(window.game.screenShake, 8);
                 const spreadAngle = 0.22;
                 const angles = [this.aimAngle - spreadAngle, this.aimAngle, this.aimAngle + spreadAngle];
 
@@ -653,6 +657,7 @@ export class Player {
                 this.mana -= 20;
                 this.manaRegenDelay = 3600; // delay regen
                 this.shootCooldown = cooldownFrames * 1.0;
+                if (window.game) window.game.screenShake = Math.max(window.game.screenShake, 3.5);
                 if (playAudioCallback) playAudioCallback('spell');
 
                 projectiles.push(new Projectile({
@@ -1401,6 +1406,9 @@ export class Projectile {
         } else {
             spawnExplosion(this.x, this.y, 60);
         }
+        if (window.game) {
+            window.game.screenShake = Math.max(window.game.screenShake, this.type === 'lightning' ? 4 : 5);
+        }
         const radius = 70;
         
         if (!currentRoom) return;
@@ -1875,6 +1883,7 @@ export class Enemy {
         this.vy = 0;
         this.knockbackX = 0;
         this.knockbackY = 0;
+        this.hitFlashFrames = 0;
 
         // Custom AI state variables
         this.aiTimer = 0;
@@ -1896,6 +1905,7 @@ export class Enemy {
         }
 
         this.health -= amount;
+        this.hitFlashFrames = 6;
         this.knockbackX = kx;
         this.knockbackY = ky;
         
@@ -1910,6 +1920,8 @@ export class Enemy {
     }
 
     update(player, obstacles, projectiles, currentRoom) {
+        if (this.hitFlashFrames > 0) this.hitFlashFrames--;
+
         // Apply Knockback decay
         this.x += this.knockbackX;
         this.y += this.knockbackY;
@@ -2426,6 +2438,10 @@ export class Enemy {
 
     draw(ctx) {
         ctx.save();
+        
+        if (this.hitFlashFrames > 0) {
+            ctx.filter = 'brightness(0) invert(1)';
+        }
         
         // Base shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
@@ -3297,6 +3313,7 @@ export class Boss {
         this.health = this.maxHealth;
         this.speed = data.speed;
         this.color = data.color;
+        this.hitFlashFrames = 0;
 
         this.attackCooldown = 120;
         this.phase = 1;
@@ -3316,6 +3333,7 @@ export class Boss {
     takeDamage(amount, kx = 0, ky = 0) {
         // Boss has heavy knockback resistance (multiply incoming knockback by 15%)
         this.health -= amount;
+        this.hitFlashFrames = 8;
         this.knockbackX = kx * 0.15;
         this.knockbackY = ky * 0.15;
 
@@ -3329,6 +3347,8 @@ export class Boss {
     }
 
     update(player, obstacles, projectiles, currentRoom) {
+        if (this.hitFlashFrames > 0) this.hitFlashFrames--;
+
         // Knocback physics
         this.x += this.knockbackX;
         this.y += this.knockbackY;
@@ -4121,6 +4141,10 @@ export class Boss {
 
     draw(ctx) {
         ctx.save();
+
+        if (this.hitFlashFrames > 0) {
+            ctx.filter = 'brightness(0) invert(1)';
+        }
 
         const wobble = Math.sin(Date.now() * 0.005) * 4;
         const bossIndex = Math.min(this.level - 1, 4);
