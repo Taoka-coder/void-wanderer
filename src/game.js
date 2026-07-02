@@ -1677,12 +1677,21 @@ class Game {
                     const dist = Math.sqrt(dx*dx + dy*dy);
                     
                     if (dist < mob.radius + proj.radius) {
+                        proj.hitMobs = proj.hitMobs || [];
+                        if (proj.hitMobs.includes(mob)) continue;
+                        proj.hitMobs.push(mob);
+
                         // Projectile Hit!
                         audio.play('hit');
                         const angle = Math.atan2(dy, dx);
                         const kbForce = proj.type === 'arrow' ? 2.5 : 1; // arrows have some knockback
                         
-                        mob.takeDamage(proj.damage, Math.cos(angle) * kbForce, Math.sin(angle) * kbForce);
+                        let dmg = proj.damage;
+                        if (proj.type === 'arrow' && proj.hitMobs.length > 1 && this.player.hasArtifact('apollos_string')) {
+                            dmg *= (1 + (proj.hitMobs.length - 1) * 0.2); // +20% damage per pierce
+                        }
+                        
+                        mob.takeDamage(dmg, Math.cos(angle) * kbForce, Math.sin(angle) * kbForce);
                         if (this.player.hasArtifact('frozen_tear')) {
                             mob.slowTimer = 90;
                         }
@@ -1693,7 +1702,19 @@ class Game {
                             spawnSparkles(proj.x, proj.y, '#f1f5f9', 4);
                         }
                         
-                        this.projectiles.splice(j, 1);
+                        // Check pierce limit
+                        let maxPierce = 0;
+                        if (proj.type === 'arrow') {
+                            if (this.player.hasArtifact('apollos_string')) {
+                                maxPierce = 999;
+                            } else if (this.player.hasArtifact('void_core')) {
+                                maxPierce = 1;
+                            }
+                        }
+                        
+                        if (proj.hitMobs.length > maxPierce) {
+                            this.projectiles.splice(j, 1);
+                        }
                     }
                 }
             }
