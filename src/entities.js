@@ -1,7 +1,7 @@
 // Entities for Void Wanderer
 // Handles Player, Weapons, Projectiles, Enemies, Bosses, Drops, and Collisions
 
-import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke, spawnLightningExplosion, spawnBoneShards } from './particles.js?v=24';
+import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke, spawnLightningExplosion, spawnBoneShards, spawnLightningBolt } from './particles.js?v=24';
 import { ROOM_TYPES } from './dungeon.js?v=24';
 import { audio } from './audio.js?v=24';
 
@@ -402,6 +402,7 @@ export class Player {
                         const target = nearbyMobs[Math.floor(Math.random() * nearbyMobs.length)];
                         target.takeDamage(1.5, 0, 0); // deal 1.5 damage
                         spawnSparkles(target.x, target.y, '#22d3ee', 8);
+                        spawnLightningBolt(this.x, this.y, target.x, target.y, '#22d3ee', 2.2, 6);
                         audio.play('hit');
                     }
                 }
