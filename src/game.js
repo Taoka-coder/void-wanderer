@@ -1803,6 +1803,31 @@ class Game {
             // Immediately update minimap when room is secured
             this.dungeon.drawMinimap(this.minimapCtx);
 
+            // Spawning cleared room rewards for basic combat rooms
+            if (room.type === ROOM_TYPES.BASIC) {
+                // Puff animation
+                spawnSmoke(400, 300, 15, 1.3);
+                
+                const roll = Math.random();
+                if (roll < 0.65) {
+                    // Spawn 1 to 5 coins
+                    const numCoins = Math.floor(1 + Math.random() * 5);
+                    for (let k = 0; k < numCoins; k++) {
+                        const rx = 400 + (Math.random() - 0.5) * 40;
+                        const ry = 300 + (Math.random() - 0.5) * 40;
+                        room.drops.push(new Drop(rx, ry, 'coin'));
+                    }
+                } else {
+                    // Spawn 1 to 2 hearts
+                    const numHearts = Math.floor(1 + Math.random() * 2);
+                    for (let k = 0; k < numHearts; k++) {
+                        const rx = 400 + (Math.random() - 0.5) * 30;
+                        const ry = 300 + (Math.random() - 0.5) * 30;
+                        room.drops.push(new Drop(rx, ry, 'heart'));
+                    }
+                }
+            }
+
             // If Trophy room is cleared (just in case), spawn pedestal
             if (room.type === ROOM_TYPES.TROPHY && room.drops.length === 0) {
                 room.drops.push(new Drop(400, 260, 'trophy'));
