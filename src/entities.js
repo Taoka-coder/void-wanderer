@@ -110,6 +110,48 @@ export const ARTIFACTS_DATABASE = [
         description: 'Player projectiles pierce 1 additional enemy.',
         emoji: '🌀',
         color: '#7c3aed'
+    },
+    {
+        id: 'vortex_whetstone',
+        name: 'Vortex Whetstone',
+        description: 'Sword attacks have +25px larger sweep and a wider swing arc, dealing +1.0 damage.',
+        emoji: '⚔️',
+        color: '#94a3b8'
+    },
+    {
+        id: 'bloodthirsty_pommel',
+        name: 'Bloodthirsty Pommel',
+        description: 'Sword hits grant +30% attack speed and +1.0 movement speed for 2 seconds.',
+        emoji: '🩸',
+        color: '#ef4444'
+    },
+    {
+        id: 'gale_quiver',
+        name: 'Gale Quiver',
+        description: 'Bow fires a double-arrow spread, each arrow dealing 65% damage.',
+        emoji: '🏹',
+        color: '#10b981'
+    },
+    {
+        id: 'apollos_string',
+        name: 'Apollo\'s Bowstring',
+        description: 'Bow arrows pierce all enemies, dealing +20% damage for each enemy passed through.',
+        emoji: '🏹',
+        color: '#f59e0b'
+    },
+    {
+        id: 'chaos_catalyst',
+        name: 'Chaos Catalyst',
+        description: 'Staff spells consume 35% less mana and fire split twin lightning bolts.',
+        emoji: '🪄',
+        color: '#c084fc'
+    },
+    {
+        id: 'astral_prism',
+        name: 'Astral Prism',
+        description: 'Staff lightning explosions release 3 tracking mini stars that seek nearby enemies.',
+        emoji: '🪄',
+        color: '#38bdf8'
     }
 ];
 
@@ -183,6 +225,7 @@ export class Player {
         this.coins = 0;
         this.specialSpellCharged = false;
         this.artifacts = [];
+        this.pommelBuffTimer = 0;
     }
 
     hasArtifact(id) {
@@ -379,6 +422,14 @@ export class Player {
             }
         }
 
+        // Update Bloodthirsty Pommel buff
+        if (this.pommelBuffTimer > 0) {
+            this.pommelBuffTimer--;
+            if (Math.random() < 0.15) {
+                spawnSparkles(this.x, this.y, '#ef4444', 1);
+            }
+        }
+
         // Handle Movement (strictly based on keyBinds)
         const binds = keyBinds || {
             moveUp: 'w',
@@ -409,6 +460,7 @@ export class Player {
             let baseSpeed = this.speed;
             if (this.hasArtifact('feather')) baseSpeed += 0.5;
             if (this.hasArtifact('demon_horn')) baseSpeed += 0.3;
+            if (this.pommelBuffTimer > 0) baseSpeed += 1.0;
             const actualSpeed = baseSpeed * speedMultiplier;
             this.x += this.moveDx * actualSpeed;
             this.y += this.moveDy * actualSpeed;
@@ -496,7 +548,9 @@ export class Player {
     attack(mouse, projectiles, currentRoom, playAudioCallback) {
         if (this.shootCooldown > 0) return false;
 
-        const cooldownFrames = 60 / this.attackSpeed;
+        let speedMult = 1.0;
+        if (this.pommelBuffTimer > 0) speedMult += 0.3; // +30% attack speed from pommel buff
+        const cooldownFrames = (60 / this.attackSpeed) / speedMult;
 
         if (this.currentWeapon === 'sword') {
             this.shootCooldown = cooldownFrames;
@@ -507,8 +561,12 @@ export class Player {
             };
             
             // Sweep damage in cone
-            const swingRadius = 90;
-            const swingAngle = Math.PI * 0.65; // ~120 degrees arc
+            let swingRadius = 90;
+            let swingAngle = Math.PI * 0.65; // ~120 degrees arc
+            if (this.hasArtifact('vortex_whetstone')) {
+                swingRadius = 115;
+                swingAngle = Math.PI * 0.85; // wider sweep!
+            }
 
             if (playAudioCallback) playAudioCallback('slash');
 
@@ -526,8 +584,13 @@ export class Player {
 
                     if (Math.abs(diffAngle) < swingAngle / 2) {
                         const kForce = 6;
-                        mob.takeDamage(this.getDamage(), Math.cos(angleToMob) * kForce, Math.sin(angleToMob) * kForce);
+                        let dmg = this.getDamage();
+                        if (this.hasArtifact('vortex_whetstone')) dmg += 1.0;
+                        mob.takeDamage(dmg, Math.cos(angleToMob) * kForce, Math.sin(angleToMob) * kForce);
                         if (window.game) window.game.screenShake = Math.max(window.game.screenShake, 4.5);
+                        if (this.hasArtifact('bloodthirsty_pommel')) {
+                            this.pommelBuffTimer = 120; // 2 seconds at 60fps
+                        }
                         if (this.hasArtifact('frozen_tear')) {
                             mob.slowTimer = 90;
                         }
@@ -596,16 +659,34 @@ export class Player {
             const speed = 9;
             const spawnX = this.x + Math.cos(this.aimAngle) * 22;
             const spawnY = this.y + Math.sin(this.aimAngle) * 22;
-            projectiles.push(new Projectile({
-                x: spawnX,
-                y: spawnY,
-                vx: Math.cos(this.aimAngle) * speed,
-                vy: Math.sin(this.aimAngle) * speed,
-                damage: this.getDamage() * 0.8,
-                range: this.range * 1.2,
-                type: 'arrow',
-                owner: 'player'
-            }));
+            
+            if (this.hasArtifact('gale_quiver')) {
+                // Double arrow split spread
+                const spread = 0.12;
+                [-spread, spread].forEach(offset => {
+                    projectiles.push(new Projectile({
+                        x: spawnX,
+                        y: spawnY,
+                        vx: Math.cos(this.aimAngle + offset) * speed,
+                        vy: Math.sin(this.aimAngle + offset) * speed,
+                        damage: this.getDamage() * 0.65, // slightly less damage per arrow but 2 arrows
+                        range: this.range * 1.2,
+                        type: 'arrow',
+                        owner: 'player'
+                    }));
+                });
+            } else {
+                projectiles.push(new Projectile({
+                    x: spawnX,
+                    y: spawnY,
+                    vx: Math.cos(this.aimAngle) * speed,
+                    vy: Math.sin(this.aimAngle) * speed,
+                    damage: this.getDamage() * 0.8,
+                    range: this.range * 1.2,
+                    type: 'arrow',
+                    owner: 'player'
+                }));
+            }
 
         } else if (this.currentWeapon === 'magic') {
             const speed = 18; // high-speed lightning bolt
@@ -648,30 +729,52 @@ export class Player {
                     spawnSparkles(this.x + Math.cos(rAngle) * rDist, this.y + Math.sin(rAngle) * rDist, '#22d3ee', 2);
                 }
             } else {
-                // Normal lightning shot - consumes 20 mana
-                if (this.mana < 20) {
+                // Normal lightning shot - consumes 20 mana (13 if has Chaos Catalyst)
+                let manaCost = 20;
+                if (this.hasArtifact('chaos_catalyst')) manaCost = 13;
+
+                if (this.mana < manaCost) {
                     spawnFloatingText(this.x, this.y - 15, "OUT OF MANA!", '#06b6d4', 12);
                     return false;
                 }
 
-                this.mana -= 20;
+                this.mana -= manaCost;
                 this.manaRegenDelay = 3600; // delay regen
                 this.shootCooldown = cooldownFrames * 1.0;
                 if (window.game) window.game.screenShake = Math.max(window.game.screenShake, 3.5);
                 if (playAudioCallback) playAudioCallback('spell');
 
-                projectiles.push(new Projectile({
-                    x: crystalX,
-                    y: crystalY,
-                    startX: crystalX,
-                    startY: crystalY,
-                    vx: Math.cos(this.aimAngle) * speed,
-                    vy: Math.sin(this.aimAngle) * speed,
-                    damage: this.getDamage() * 1.4, // balanced normal lightning damage
-                    range: this.range * 1.0,
-                    type: 'lightning',
-                    owner: 'player'
-                }));
+                if (this.hasArtifact('chaos_catalyst')) {
+                    // Twin lightning bolts split
+                    const spread = 0.08;
+                    [-spread, spread].forEach(offset => {
+                        projectiles.push(new Projectile({
+                            x: crystalX,
+                            y: crystalY,
+                            startX: crystalX,
+                            startY: crystalY,
+                            vx: Math.cos(this.aimAngle + offset) * speed,
+                            vy: Math.sin(this.aimAngle + offset) * speed,
+                            damage: this.getDamage() * 1.1, // 1.1x damage per bolt
+                            range: this.range * 1.0,
+                            type: 'lightning',
+                            owner: 'player'
+                        }));
+                    });
+                } else {
+                    projectiles.push(new Projectile({
+                        x: crystalX,
+                        y: crystalY,
+                        startX: crystalX,
+                        startY: crystalY,
+                        vx: Math.cos(this.aimAngle) * speed,
+                        vy: Math.sin(this.aimAngle) * speed,
+                        damage: this.getDamage() * 1.4, // balanced normal lightning damage
+                        range: this.range * 1.0,
+                        type: 'lightning',
+                        owner: 'player'
+                    }));
+                }
             }
         }
         return true;
@@ -708,11 +811,16 @@ export class Player {
             ctx.beginPath();
             
             // Draw sweeping line
-            const sweep = Math.PI * 0.65;
+            let sweep = Math.PI * 0.65;
+            let drawRadius = 80;
+            if (this.hasArtifact('vortex_whetstone')) {
+                sweep = Math.PI * 0.85;
+                drawRadius = 105;
+            }
             const progressRatio = this.swordSlash.progress / this.swordSlash.max;
             const startAngle = this.swordSlash.angle - sweep / 2 + (sweep * progressRatio);
             
-            ctx.arc(this.x, this.y, 80, startAngle, startAngle + 0.1);
+            ctx.arc(this.x, this.y, drawRadius, startAngle, startAngle + 0.1);
             ctx.stroke();
             ctx.restore();
         }
@@ -1273,16 +1381,35 @@ export class Projectile {
     update(obstacles, currentRoom) {
         // Homing behavior
         if (this.type === 'homing_orb') {
-            const player = currentRoom ? currentRoom.playerRef : null;
-            if (player) {
-                const pdx = player.x - this.x;
-                const pdy = player.y - this.y;
+            let target = null;
+            if (this.owner === 'player') {
+                // Home in on nearest enemy
+                let nearestDist = 9999;
+                if (currentRoom && currentRoom.mobs) {
+                    for (const mob of currentRoom.mobs) {
+                        const dx = mob.x - this.x;
+                        const dy = mob.y - this.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < nearestDist) {
+                            nearestDist = dist;
+                            target = mob;
+                        }
+                    }
+                }
+            } else {
+                // Home in on player
+                target = currentRoom ? currentRoom.playerRef : null;
+            }
+
+            if (target) {
+                const pdx = target.x - this.x;
+                const pdy = target.y - this.y;
                 const pdist = Math.sqrt(pdx*pdx + pdy*pdy);
                 if (pdist > 0) {
-                    const targetVx = (pdx / pdist) * 4.5;
-                    const targetVy = (pdy / pdist) * 4.5;
-                    this.vx = this.vx * 0.94 + targetVx * 0.06;
-                    this.vy = this.vy * 0.94 + targetVy * 0.06;
+                    const targetVx = (pdx / pdist) * 5.0;
+                    const targetVy = (pdy / pdist) * 5.0;
+                    this.vx = this.vx * 0.93 + targetVx * 0.07;
+                    this.vy = this.vy * 0.93 + targetVy * 0.07;
                     this.angle = Math.atan2(this.vy, this.vx);
                 }
             }
@@ -1409,6 +1536,28 @@ export class Projectile {
         if (window.game) {
             window.game.screenShake = Math.max(window.game.screenShake, this.type === 'lightning' ? 4 : 5);
         }
+        
+        // Astral Prism tracking mini star sparks
+        if (this.owner === 'player' && currentRoom && currentRoom.playerRef && currentRoom.playerRef.hasArtifact('astral_prism')) {
+            const playerRef = currentRoom.playerRef;
+            for (let i = 0; i < 3; i++) {
+                const angle = (Math.PI * 2 / 3) * i + (Math.random() - 0.5) * 0.5;
+                const speed = 3;
+                if (window.game && window.game.projectiles) {
+                    window.game.projectiles.push(new Projectile({
+                        x: this.x,
+                        y: this.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        damage: playerRef.getDamage() * 0.45, // mini stars deal 45% damage
+                        range: 220,
+                        type: 'homing_orb',
+                        owner: 'player'
+                    }));
+                }
+            }
+        }
+
         const radius = 70;
         
         if (!currentRoom) return;
