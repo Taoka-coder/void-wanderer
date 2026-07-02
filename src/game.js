@@ -1984,14 +1984,15 @@ class Game {
         ctx.restore();
     }
 
-    drawWallTorch(ctx, tx, ty) {
+    drawWallTorch(ctx, tx, ty, isBottom = false) {
         ctx.save();
         
         const isArtifactRoom = this.dungeon && this.dungeon.activeRoom && this.dungeon.activeRoom.type === ROOM_TYPES.ARTIFACT;
 
         // Draw light source radial glow behind the torch
         const pulse = Math.sin(Date.now() * 0.008 + tx * 0.05) * 4 + 18;
-        const glowGrad = ctx.createRadialGradient(tx, ty, 2, tx, ty, pulse);
+        const glowY = isBottom ? ty + 6 : ty - 6;
+        const glowGrad = ctx.createRadialGradient(tx, glowY, 2, tx, glowY, pulse);
         if (isArtifactRoom) {
             glowGrad.addColorStop(0, 'rgba(168, 85, 247, 0.25)'); // soft purple
             glowGrad.addColorStop(0.5, 'rgba(124, 58, 237, 0.1)'); // violet
@@ -2003,40 +2004,75 @@ class Game {
         
         ctx.fillStyle = glowGrad;
         ctx.beginPath();
-        ctx.arc(tx, ty, pulse, 0, Math.PI * 2);
+        ctx.arc(tx, glowY, pulse, 0, Math.PI * 2);
         ctx.fill();
         
-        // Draw steel/wood torch bracket
-        ctx.fillStyle = '#451a03'; // dark brown handle
-        ctx.fillRect(tx - 2, ty, 4, 12);
-        ctx.fillStyle = '#1e293b'; // steel bracket holding the flame
-        ctx.fillRect(tx - 4, ty - 2, 8, 3);
-        
-        // Draw fire flame animated tear shape
-        const flameH = 8 + Math.sin(Date.now() * 0.015 + tx) * 3;
-        const flameW = 4 + Math.cos(Date.now() * 0.012 + tx) * 1;
-        
-        const flameGrad = ctx.createLinearGradient(tx, ty, tx, ty - flameH);
-        if (isArtifactRoom) {
-            flameGrad.addColorStop(0, '#c084fc'); // bright light purple
-            flameGrad.addColorStop(0.5, '#a855f7'); // purple
-            flameGrad.addColorStop(1, 'rgba(124, 58, 237, 0)'); // violet fade
+        if (isBottom) {
+            // Flipped Torch (for bottom wall)
+            // Draw steel/wood torch handle pointing upwards (towards the floor)
+            ctx.fillStyle = '#451a03'; // dark brown handle
+            ctx.fillRect(tx - 2, ty - 12, 4, 12);
+            ctx.fillStyle = '#1e293b'; // steel bracket holding the flame
+            ctx.fillRect(tx - 4, ty, 8, 3);
+            
+            // Draw fire flame animated tear shape pointing downwards (towards ceiling)
+            const flameH = 8 + Math.sin(Date.now() * 0.015 + tx) * 3;
+            const flameW = 4 + Math.cos(Date.now() * 0.012 + tx) * 1;
+            
+            const flameGrad = ctx.createLinearGradient(tx, ty + 2, tx, ty + 2 + flameH);
+            if (isArtifactRoom) {
+                flameGrad.addColorStop(0, '#c084fc'); // bright light purple
+                flameGrad.addColorStop(0.5, '#a855f7'); // purple
+                flameGrad.addColorStop(1, 'rgba(124, 58, 237, 0)'); // violet fade
+            } else {
+                flameGrad.addColorStop(0, '#f97316'); // bright orange
+                flameGrad.addColorStop(0.5, '#eab308'); // yellow
+                flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)'); // fade
+            }
+            
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = isArtifactRoom ? '#a855f7' : '#f97316';
+            ctx.fillStyle = flameGrad;
+            
+            ctx.beginPath();
+            ctx.moveTo(tx - flameW, ty + 3);
+            ctx.quadraticCurveTo(tx - flameW, ty + 3 + flameH * 0.4, tx, ty + 3 + flameH);
+            ctx.quadraticCurveTo(tx + flameW, ty + 3 + flameH * 0.4, tx + flameW, ty + 3);
+            ctx.closePath();
+            ctx.fill();
         } else {
-            flameGrad.addColorStop(0, '#f97316'); // bright orange
-            flameGrad.addColorStop(0.5, '#eab308'); // yellow
-            flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)'); // fade
+            // Standard Torch (for top wall)
+            ctx.fillStyle = '#451a03'; // dark brown handle
+            ctx.fillRect(tx - 2, ty, 4, 12);
+            ctx.fillStyle = '#1e293b'; // steel bracket holding the flame
+            ctx.fillRect(tx - 4, ty - 2, 8, 3);
+            
+            // Draw fire flame animated tear shape pointing upwards
+            const flameH = 8 + Math.sin(Date.now() * 0.015 + tx) * 3;
+            const flameW = 4 + Math.cos(Date.now() * 0.012 + tx) * 1;
+            
+            const flameGrad = ctx.createLinearGradient(tx, ty, tx, ty - flameH);
+            if (isArtifactRoom) {
+                flameGrad.addColorStop(0, '#c084fc'); // bright light purple
+                flameGrad.addColorStop(0.5, '#a855f7'); // purple
+                flameGrad.addColorStop(1, 'rgba(124, 58, 237, 0)'); // violet fade
+            } else {
+                flameGrad.addColorStop(0, '#f97316'); // bright orange
+                flameGrad.addColorStop(0.5, '#eab308'); // yellow
+                flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)'); // fade
+            }
+            
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = isArtifactRoom ? '#a855f7' : '#f97316';
+            ctx.fillStyle = flameGrad;
+            
+            ctx.beginPath();
+            ctx.moveTo(tx - flameW, ty - 2);
+            ctx.quadraticCurveTo(tx - flameW, ty - 2 - flameH * 0.4, tx, ty - 2 - flameH);
+            ctx.quadraticCurveTo(tx + flameW, ty - 2 - flameH * 0.4, tx + flameW, ty - 2);
+            ctx.closePath();
+            ctx.fill();
         }
-        
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = isArtifactRoom ? '#a855f7' : '#f97316';
-        ctx.fillStyle = flameGrad;
-        
-        ctx.beginPath();
-        ctx.moveTo(tx - flameW, ty - 2);
-        ctx.quadraticCurveTo(tx - flameW, ty - 2 - flameH * 0.4, tx, ty - 2 - flameH);
-        ctx.quadraticCurveTo(tx + flameW, ty - 2 - flameH * 0.4, tx + flameW, ty - 2);
-        ctx.closePath();
-        ctx.fill();
         
         ctx.restore();
     }
@@ -2886,11 +2922,11 @@ class Game {
 
         // Draw Wall Decorations (torches and chains)
         // Top wall torches
-        this.drawWallTorch(this.ctx, 240, 48);
-        this.drawWallTorch(this.ctx, 560, 48);
+        this.drawWallTorch(this.ctx, 240, 48, false);
+        this.drawWallTorch(this.ctx, 560, 48, false);
         // Bottom wall torches
-        this.drawWallTorch(this.ctx, 240, 552);
-        this.drawWallTorch(this.ctx, 560, 552);
+        this.drawWallTorch(this.ctx, 240, 552, true);
+        this.drawWallTorch(this.ctx, 560, 552, true);
         // Left wall chains
         this.drawWallChain(this.ctx, 32, 160, 40);
         this.drawWallChain(this.ctx, 32, 380, 45);
