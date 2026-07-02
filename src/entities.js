@@ -1,7 +1,7 @@
 // Entities for Void Wanderer
 // Handles Player, Weapons, Projectiles, Enemies, Bosses, Drops, and Collisions
 
-import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke, spawnLightningExplosion } from './particles.js?v=24';
+import { spawnBlood, spawnSparkles, spawnExplosion, spawnFloatingText, spawnSmoke, spawnLightningExplosion, spawnBoneShards } from './particles.js?v=24';
 import { ROOM_TYPES } from './dungeon.js?v=24';
 import { audio } from './audio.js?v=24';
 
@@ -640,7 +640,7 @@ export class Player {
                         if (Math.abs(diffAngle) < swingAngle / 2) {
                             if (obs.type === 'bone') {
                                 obs.health = 0;
-                                spawnSparkles(obs.x, obs.y, '#f8fafc', 8);
+                                spawnBoneShards(obs.x, obs.y, 10);
                                 this.dropLoot(obs.x, obs.y, currentRoom);
                             } else {
                                 obs.extinguished = true;
@@ -1454,7 +1454,7 @@ export class Projectile {
                     if (obs.type === 'bone') {
                         obs.health -= 1;
                         if (obs.health <= 0) {
-                            spawnSparkles(obs.x, obs.y, '#f8fafc', 8);
+                            spawnBoneShards(obs.x, obs.y, 10);
                             // Drop loot
                             const r = Math.random();
                             if (r < 0.2) currentRoom.drops.push(new Drop(obs.x, obs.y, 'coin'));
